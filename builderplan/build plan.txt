@@ -1,0 +1,1929 @@
+build plan
+
+## EXECUTIVE SUMMARY
+
+### What This Is
+An **autonomous AI agent** that pursues product research goals end-to-end without step-by-step human direction. Given a high-level objective like "fix our declining activation rate," the agent independently gathers data, forms hypotheses, runs experiments, validates solutions, and delivers implementation-ready recommendations—checking in with humans only at critical decision points.
+
+### Core Philosophy Shift
+
+| Traditional Tool (Old PRD) | Agentic AI (This PRD) |
+|----------------------------|------------------------|
+| User directs every step | Agent pursues goal autonomously |
+| Sequential pipeline | Dynamic goal-seeking with loops |
+| Fixed scenarios | Agent discovers what needs doing |
+| Waits for input | Proactively seeks information |
+| One-shot outputs | Iterative refinement until goal met |
+| "What do you want me to do next?" | "I'm working on it, here's progress" |
+
+### One-Line Value Proposition
+**"Give me a goal, I'll solve it autonomously—you just approve at checkpoints."**
+
+---
+
+## 1. PRODUCT VISION
+
+### The Problem with Non-Agentic Tools
+Current UX research tools (including GPT, competitors) are **reactive assistants**:
+- User: "Research competitors" → Tool: "Which ones?" → User: "Here are URLs" → Tool: "Here's data" → User: "Now analyze it"
+- Requires constant hand-holding
+- No memory between steps
+- Can't recover from failures
+- Doesn't learn from experience
+
+### Our Solution: True Agentic AI
+```
+User: "Fix our declining activation rate. 2 weeks, $2k budget."
+
+Agent: [Autonomously executes over 3 days]:
+  ✓ Pulled Mixpanel data → Found 60% drop at "connect integration" step
+  ✓ Analyzed 300 support tickets → "confused by OAuth" complaints ↑400%
+  ✓ Recruited 8 users who dropped off → Conducted interviews
+  ✓ Root cause: Users fear privacy violation
+  ✓ Generated 3 solution hypotheses
+  ✓ Tested all 3 with 20 users each
+  ✓ Winner: Progressive permission (85% activation vs. 25% current)
+  
+  [CHECKPOINT] Approve this solution?
+  
+User: "Approved"
+
+Agent: [Continues autonomously]:
+  ✓ Generated PRD with full research trail
+  ✓ Created Figma mockups
+  ✓ Wrote Jira tickets
+  ✓ Notified #product-team on Slack
+  ✓ Scheduled stakeholder review for Thursday
+  
+  [COMPLETE] Solution ready for engineering.
+```
+
+**User involvement:** 2 checkpoint approvals vs. 20+ manual steps
+
+---
+
+## 2. CORE AGENTIC CAPABILITIES
+
+### The ReAct Loop (Reason + Act)
+
+```
+┌─────────────────────────────────────────┐
+│           GOAL ACCEPTED                 │
+│  "Fix activation rate decline"         │
+└─────────────────────────────────────────┘
+                   ↓
+         ┌─────────────────┐
+         │   THINK         │  ← Explicit reasoning
+         │  "I need data   │     (Chain-of-Thought)
+         │   on drop-off"  │
+         └────────┬────────┘
+                  ↓
+         ┌─────────────────┐
+         │   ACT           │  ← Execute tools
+         │  Pull Mixpanel  │     (Real API calls)
+         │  analytics      │
+         └────────┬────────┘
+                  ↓
+         ┌─────────────────┐
+         │   OBSERVE       │  ← Perceive results
+         │  "60% drop at   │
+         │   step 3"       │
+         └────────┬────────┘
+                  ↓
+         ┌─────────────────┐
+         │   LEARN         │  ← Update beliefs
+         │  Hypothesis:    │     Store in memory
+         │  "Step 3 issue" │
+         └────────┬────────┘
+                  ↓
+              [LOOP BACK TO THINK]
+              (Until goal achieved)
+```
+
+### Key Differentiators
+
+**1. Autonomous Execution**
+- Agent doesn't ask "what next?" at every step
+- Operates independently for hours/days
+- User sees live progress, intervenes only if needed
+
+**2. Dynamic Planning**
+- Generates conditional task graphs: "If X fails, try Y"
+- Replans when obstacles encountered
+- Parallel execution of independent tasks
+
+**3. Self-Correction**
+- Detects when actions fail
+- Analyzes root cause (reasoning error vs. tool failure)
+- Automatically tries alternative approaches
+
+**4. Multi-Layer Memory**
+- **Working memory:** Current goal state, active hypotheses
+- **Episodic memory:** What happened this session
+- **Semantic memory:** Knowledge from all past projects
+- **Procedural memory:** Learned skills ("how to do X")
+
+**5. Real Tool Execution**
+- Not just "suggests using Mixpanel" → Actually calls Mixpanel API
+- Not just "draft email" → Actually sends email (if approved)
+- Not just "mockup description" → Actually generates visual file
+
+**6. Proactive Communication**
+- Agent: "Stuck on X, need your input"
+- Agent: "Found critical issue, pausing for approval"
+- Agent: "Completed sub-goal, moving to next"
+
+---
+
+## 3. SYSTEM ARCHITECTURE
+
+### High-Level Architecture
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    USER INTERFACE                            │
+│  • Natural language goal input                               │
+│  • Live execution viewer (agent's current action)            │
+│  • Checkpoint approval UI (approve/reject/modify)            │
+│  • Conversation history (full reasoning trail)               │
+└──────────────────────────────────────────────────────────────┘
+                            ↓
+┌──────────────────────────────────────────────────────────────┐
+│               AGENTIC ORCHESTRATOR (Core Brain)              │
+│                                                               │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │ Goal Parser  │→ │Task Planner  │→ │ReAct Engine  │      │
+│  │ NL → Mission │  │ Dynamic Graph│  │ Think→Act→Obs│      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+│                                                               │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │            REASONING ENGINE                          │   │
+│  │  • Chain-of-Thought generation                       │   │
+│  │  • Hypothesis formation                              │   │
+│  │  • Action selection                                  │   │
+│  │  • Self-correction logic                             │   │
+│  └──────────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────┘
+                            ↓
+┌──────────────────────────────────────────────────────────────┐
+│                    TOOL EXECUTION LAYER                      │
+│                                                               │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │ Data Tools  │  │ Action Tools│  │ Create Tools│         │
+│  │ • APIs      │  │ • Email     │  │ • Mockups   │         │
+│  │ • Scrapers  │  │ • Slack     │  │ • PRDs      │         │
+│  │ • Analytics │  │ • Tickets   │  │ • Surveys   │         │
+│  └─────────────┘  └─────────────┘  └─────────────┘         │
+│                                                               │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │         TOOL REGISTRY (Extensible)                  │    │
+│  │  • 50+ tools (analytics, communication, creation)   │    │
+│  │  • Error handling & retries                         │    │
+│  │  • Cost tracking                                    │    │
+│  │  • Permission system                                │    │
+│  └─────────────────────────────────────────────────────┘    │
+└──────────────────────────────────────────────────────────────┘
+                            ↓
+┌──────────────────────────────────────────────────────────────┐
+│                  MEMORY SYSTEM (4 Layers)                    │
+│                                                               │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │  Working     │  │  Episodic    │  │  Semantic    │      │
+│  │  Memory      │  │  Memory      │  │  Memory      │      │
+│  │ (this goal)  │  │ (session)    │  │ (all time)   │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+│                                                               │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │          Procedural Memory (Skills)                  │   │
+│  │  • Learned from successful execution traces          │   │
+│  │  • "How to validate onboarding hypothesis"           │   │
+│  │  • Improves with experience                          │   │
+│  └──────────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────┘
+                            ↓
+┌──────────────────────────────────────────────────────────────┐
+│              AUTONOMY & SAFETY LAYER                         │
+│                                                               │
+│  • Autonomy level manager (none/partial/full/supervised)     │
+│  • Permission checker (when to ask human)                    │
+│  • Budget tracker ($, time, API calls)                       │
+│  • Risk assessor (low/medium/high risk actions)              │
+│  • Kill switch (user can pause/stop anytime)                 │
+│  • Audit log (every action recorded)                         │
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 4. CORE COMPONENTS (Detailed)
+
+### 4.1 Goal Parser & Mission Planner
+
+**Input:** Natural language goal  
+**Output:** Structured mission with dynamic execution plan
+
+```python
+class GoalParser:
+    def parse(self, user_input: str) -> Mission:
+        """
+        User: "Users are abandoning checkout. Fix it. 2 weeks, $2k."
+        
+        Agent extracts:
+        {
+          "primary_goal": "Reduce checkout abandonment",
+          "success_criteria": "Abandonment rate < 30% (currently 60%)",
+          "constraints": {
+            "time": "2 weeks",
+            "budget": "$2,000",
+            "no_disrupt": "Don't break existing checkout"
+          },
+          "sub_goals": [
+            "Identify abandonment cause",
+            "Validate with users",
+            "Design solution",
+            "Test solution",
+            "Implement"
+          ],
+          "uncertainties": [
+            "Which step has highest drop-off?",
+            "Is it UX or pricing issue?",
+            "Technical feasibility of fixes?"
+          ],
+          "stakeholders": ["PM", "Design", "Engineering"],
+          "autonomy_level": "supervised"  # Default: check in at key points
+        }
+        """
+        
+        prompt = f"""
+        Parse this product goal into a structured mission.
+        
+        User input: "{user_input}"
+        
+        Extract:
+        - Primary measurable goal
+        - Success criteria (specific numbers if possible)
+        - Time and budget constraints
+        - What we need to discover
+        - Appropriate autonomy level (based on risk)
+        
+        Return JSON with mission structure.
+        """
+        
+        return self.llm.generate_json(prompt, model='claude-sonnet-4')
+```
+
+**Dynamic Task Graph Generation:**
+
+```python
+class TaskPlanner:
+    def plan(self, mission: Mission) -> TaskGraph:
+        """
+        Generates conditional execution plan
+        
+        Example output for "fix checkout abandonment":
+        
+        TASK_1: Pull analytics data [AUTO]
+          ↓
+        TASK_2: Identify drop-off point [AUTO]
+          ↓
+        DECISION_1: If clear pattern found
+          ├─ YES → TASK_3A: Form hypothesis [AUTO]
+          └─ NO  → TASK_3B: User interviews [ASK_USER]
+                    ↓
+        TASK_4: Design experiments (3 options) [AUTO]
+          ↓
+        CHECKPOINT: Get user approval for experiments [WAIT_USER]
+          ↓
+        TASK_5: Run experiments in parallel [AUTO]
+          ├─ Experiment A (pricing change)
+          ├─ Experiment B (UX simplification)
+          └─ Experiment C (social proof)
+          ↓
+        TASK_6: Analyze results [AUTO]
+          ↓
+        DECISION_2: If winner found (95% confidence)
+          ├─ YES → TASK_7: Generate implementation package [AUTO]
+          └─ NO  → TASK_7B: Run additional validation [AUTO]
+          
+        CHECKPOINT: Final approval [WAIT_USER]
+          ↓
+        TASK_8: Execute implementation [AUTO]
+          ├─ Create Jira tickets
+          ├─ Notify stakeholders
+          └─ Set up success monitoring
+        """
+        
+        # LLM generates plan based on goal type
+        plan_prompt = f"""
+        Generate execution plan for this mission:
+        {mission.to_dict()}
+        
+        Consider:
+        - What data is needed first?
+        - What are decision points?
+        - What can run in parallel?
+        - What requires human approval?
+        - What are fallback paths if tasks fail?
+        
+        Return task graph with:
+        - Dependencies (A must complete before B)
+        - Conditional branches (if X then Y else Z)
+        - Checkpoints (where human approval needed)
+        - Parallel tasks (can run simultaneously)
+        """
+        
+        return self.llm.generate_task_graph(plan_prompt)
+    
+    def replan(self, graph: TaskGraph, failed_task: Task, error: Error) -> TaskGraph:
+        """
+        Self-correction: when task fails, generate new plan
+        """
+        
+        replan_prompt = f"""
+        Task '{failed_task.name}' failed with error: {error.message}
+        
+        Current goal: {graph.mission.primary_goal}
+        Completed tasks: {graph.completed_tasks}
+        Remaining budget: {graph.remaining_budget}
+        
+        Options:
+        1. Retry with different approach
+        2. Skip task and adjust later tasks
+        3. Abandon current path, pursue alternative
+        4. Ask user for guidance
+        
+        What should we do? Generate revised plan.
+        """
+        
+        revised = self.llm.generate_task_graph(replan_prompt)
+        return revised
+```
+
+---
+
+### 4.2 ReAct Engine (Core Loop)
+
+**The Continuous Reasoning-Action Loop:**
+
+```python
+class ReActEngine:
+    def __init__(self):
+        self.working_memory = WorkingMemory()
+        self.episodic_memory = EpisodicMemory()
+        self.tool_registry = ToolRegistry()
+        self.autonomy_manager = AutonomyManager()
+    
+    async def run_until_goal_met(self, mission: Mission):
+        """
+        Main agentic loop - runs autonomously until goal achieved
+        """
+        
+        current_observation = None
+        
+        while not mission.is_complete():
+            
+            # 1. THINK: Reason about current state
+            thought = await self.think(
+                observation=current_observation,
+                goal=mission.current_goal,
+                memory=self.working_memory.context,
+                history=self.episodic_memory.recent_events(n=10)
+            )
+            
+            self.episodic_memory.record('thought', thought)
+            
+            # 2. ACT: Select and execute actions
+            actions = await self.select_actions(
+                thought=thought,
+                available_tools=self.tool_registry.available(),
+                constraints=mission.constraints
+            )
+            
+            for action in actions:
+                
+                # Check if need permission
+                if self.autonomy_manager.needs_approval(action, mission):
+                    approval = await self.request_user_approval(action)
+                    
+                    if not approval.granted:
+                        # User rejected, replan
+                        alternative = await self.replan_alternative(
+                            action, 
+                            approval.feedback
+                        )
+                        if alternative:
+                            action = alternative
+                        else:
+                            continue  # Skip this action
+                
+                # Execute action
+                result = await self.execute_action(action)
+                
+                self.episodic_memory.record('action', action, result)
+                
+                # 3. OBSERVE: What happened?
+                observation = await self.observe_result(result)
+                
+                self.episodic_memory.record('observation', observation)
+                
+                # 4. LEARN: Update beliefs and memory
+                await self.update_beliefs(observation, thought, action)
+                
+                # Self-correction if failed
+                if not result.success:
+                    correction = await self.self_correct(action, result)
+                    if correction:
+                        # Try correction immediately
+                        result = await self.execute_action(correction)
+                        observation = await self.observe_result(result)
+                
+                current_observation = observation
+            
+            # Check if goal achieved
+            if await self.goal_achieved(mission):
+                await self.complete_mission(mission)
+                break
+            
+            # Update working memory with latest state
+            self.working_memory.update(thought, actions, observation)
+    
+    async def think(self, observation, goal, memory, history) -> Thought:
+        """
+        Explicit reasoning step - not just pattern matching
+        """
+        
+        prompt = f"""
+        You are an autonomous product research agent reasoning about your next step.
+        
+        CURRENT GOAL: {goal.description}
+        PROGRESS: {goal.completion_percent}%
+        LAST OBSERVATION: {observation}
+        WORKING CONTEXT: {memory}
+        RECENT HISTORY: {history}
+        
+        Think through:
+        1. What does the last observation tell us?
+        2. Does it confirm or challenge our hypothesis?
+        3. What uncertainty remains?
+        4. What's the most logical next action to advance the goal?
+        5. What could go wrong?
+        6. What's our backup if it fails?
+        
+        Generate structured reasoning:
+        {{
+          "interpretation": "what this observation means",
+          "hypothesis_status": "confirmed | challenged | needs_more_data",
+          "confidence_change": "+15% or -10%",
+          "uncertainties": ["list what we don't know"],
+          "next_action": "specific next step with reasoning",
+          "risks": ["potential failure modes"],
+          "contingency": "if fails, do X"
+        }}
+        """
+        
+        thought = await self.llm.generate_json(prompt, model='claude-sonnet-4')
+        return Thought(thought)
+    
+    async def select_actions(self, thought: Thought, available_tools: List[Tool], 
+                             constraints: Dict) -> List[Action]:
+        """
+        Choose which tools to use based on reasoning
+        """
+        
+        prompt = f"""
+        Based on this reasoning, which tools should be executed?
+        
+        REASONING: {thought.interpretation}
+        NEXT ACTION: {thought.next_action}
+        AVAILABLE TOOLS: {[t.name for t in available_tools]}
+        CONSTRAINTS: Budget ${constraints.budget_remaining}, 
+                     Time {constraints.time_remaining}
+        
+        Select 1-3 tools that advance the goal.
+        For each, specify exact parameters.
+        
+        Return:
+        {{
+          "actions": [
+            {{
+              "tool": "tool_name",
+              "reason": "why this advances the goal",
+              "params": {{"key": "value"}},
+              "estimated_cost": "$50",
+              "estimated_time": "2 hours",
+              "risk_level": "low | medium | high",
+              "fallback_tool": "alternative if this fails"
+            }}
+          ]
+        }}
+        """
+        
+        selection = await self.llm.generate_json(prompt, model='claude-sonnet-4')
+        
+        actions = []
+        for s in selection['actions']:
+            tool = self.tool_registry.get(s['tool'])
+            actions.append(Action(
+                tool=tool,
+                params=s['params'],
+                reason=s['reason'],
+                risk=s['risk_level'],
+                fallback=s.get('fallback_tool')
+            ))
+        
+        return actions
+    
+    async def self_correct(self, failed_action: Action, result: Result) -> Action:
+        """
+        Agent detects and corrects its own errors
+        """
+        
+        prompt = f"""
+        An action just failed. Analyze and correct.
+        
+        FAILED ACTION: {failed_action.tool.name}({failed_action.params})
+        ERROR: {result.error.message}
+        GOAL: {self.working_memory.current_goal}
+        
+        Diagnose:
+        1. Was this a reasoning error? (We misunderstood the problem)
+        2. Was this a tool failure? (Tool didn't work, try alternative)
+        3. Was this a parameter error? (Wrong inputs)
+        4. Is the goal itself wrong? (We're solving the wrong problem)
+        
+        Return:
+        {{
+          "error_type": "reasoning | tool_failure | parameters | goal_misalignment",
+          "analysis": "what went wrong",
+          "correction": {{
+            "action": "what to do instead",
+            "tool": "alternative tool if needed",
+            "params": {{}} "corrected parameters"
+          }}
+        }}
+        """
+        
+        diagnosis = await self.llm.generate_json(prompt, model='claude-sonnet-4')
+        
+        if diagnosis['error_type'] == 'tool_failure' and failed_action.fallback:
+            # Try fallback tool
+            fallback_tool = self.tool_registry.get(failed_action.fallback)
+            return Action(
+                tool=fallback_tool,
+                params=failed_action.params,
+                reason=f"Fallback after {failed_action.tool.name} failed"
+            )
+        
+        elif diagnosis['correction']:
+            # Try corrected action
+            return Action(
+                tool=self.tool_registry.get(diagnosis['correction']['tool']),
+                params=diagnosis['correction']['params'],
+                reason=diagnosis['analysis']
+            )
+        
+        return None  # Can't recover, need to replan
+```
+
+---
+
+### 4.3 Tool Execution Layer
+
+**Tool Registry (50+ Real Tools):**
+
+```python
+class ToolRegistry:
+    def __init__(self):
+        self.tools = {
+            # DATA GATHERING TOOLS
+            'analytics_mixpanel': MixpanelAnalytics(),
+            'analytics_amplitude': AmplitudeAnalytics(),
+            'analytics_ga4': GoogleAnalytics4(),
+            'scrape_app_reviews': AppStoreScraper(),
+            'scrape_competitor': CompetitorScraper(),
+            'scrape_reddit': RedditScraper(),
+            'scrape_twitter': TwitterScraper(),
+            'query_database': DatabaseQuery(),
+            'read_support_tickets': SupportTicketReader(),
+            'analyze_session_replay': SessionReplayAnalyzer(),
+            
+            # USER RESEARCH TOOLS
+            'recruit_participants': UserInterviewsAPI(),
+            'schedule_interviews': CalendlyAPI(),
+            'send_survey': TypeformAPI(),
+            'analyze_interview': InterviewTranscriptAnalyzer(),
+            'usability_test': MazeAPI(),
+            
+            # COMMUNICATION TOOLS
+            'send_email': EmailClient(),
+            'send_slack': SlackClient(),
+            'create_jira_ticket': JiraAPI(),
+            'create_linear_ticket': LinearAPI(),
+            'schedule_meeting': GoogleCalendarAPI(),
+            'update_notion': NotionAPI(),
+            
+            # CREATION TOOLS
+            'generate_mockup': MockupGenerator(),
+            'generate_wireframe': WireframeGenerator(),
+            'write_prd': PRDGenerator(),
+            'create_presentation': DeckGenerator(),
+            'generate_survey': SurveyGenerator(),
+            'create_prototype': PrototypeGenerator(),
+            
+            # ANALYSIS TOOLS
+            'cluster_text': TextClusterer(),
+            'sentiment_analysis': SentimentAnalyzer(),
+            'statistical_test': StatisticalAnalyzer(),
+            'funnel_analysis': FunnelAnalyzer(),
+            'cohort_analysis': CohortAnalyzer(),
+            
+            # VALIDATION TOOLS
+            'calculate_roi': ROICalculator(),
+            'business_impact': BusinessImpactEstimator(),
+            'risk_assessment': RiskAssessor(),
+            'confidence_scorer': ConfidenceScorer(),
+            
+            # MONITORING TOOLS
+            'competitor_monitor': CompetitorMonitor(),
+            'review_monitor': ReviewMonitor(),
+            'metric_monitor': MetricMonitor(),
+        }
+    
+    def execute(self, action: Action) -> Result:
+        """
+        Execute tool with error handling, retries, and cost tracking
+        """
+        
+        tool = action.tool
+        
+        # Pre-execution checks
+        if not tool.validate_params(action.params):
+            return Result.error("Invalid parameters")
+        
+        if action.estimated_cost > self.remaining_budget:
+            return Result.error("Exceeds budget")
+        
+        # Execute with monitoring
+        try:
+            start_time = time.time()
+            
+            result = tool.execute(action.params)
+            
+            execution_time = time.time() - start_time
+            
+            # Log execution
+            self.log_execution(tool, action, result, execution_time)
+            
+            # Verify result quality
+            if not tool.verify_result(result):
+                return Result.error("Tool succeeded but output invalid")
+            
+            return Result.success(result)
+            
+        except ToolExecutionError as e:
+            # Attempt automatic recovery
+            if e.recoverable and action.retry_count < 3:
+                action.retry_count += 1
+                return self.execute(action)  # Retry
+            
+            return Result.error(str(e), recoverable=False)
+        
+        except Exception as e:
+            return Result.error(f"Unexpected error: {str(e)}")
+```
+
+**Example Tool Implementations:**
+
+```python
+class MixpanelAnalytics(Tool):
+    """Real Mixpanel API integration"""
+    
+    def execute(self, params: Dict) -> Dict:
+        import requests
+        
+        response = requests.get(
+            'https://mixpanel.com/api/2.0/funnels',
+            auth=(MIXPANEL_API_KEY, ''),
+            params={
+                'funnel_id': params['funnel_id'],
+                'from_date': params['start_date'],
+                'to_date': params['end_date']
+            }
+        )
+        
+        data = response.json()
+        
+        return {
+            'steps': data['data']['steps'],
+            'overall_conversion': data['data']['analysis']['overall_conv_ratio'],
+            'drop_off_points': self._identify_drop_offs(data)
+        }
+    
+    def _identify_drop_offs(self, data):
+        """Find steps with biggest drop"""
+        steps = data['data']['steps']
+        drop_offs = []
+        
+        for i in range(len(steps) - 1):
+            drop_rate = 1 - (steps[i+1]['count'] / steps[i]['count'])
+            if drop_rate > 0.3:  # >30% drop
+                drop_offs.append({
+                    'from_step': steps[i]['event'],
+                    'to_step': steps[i+1]['event'],
+                    'drop_rate': drop_rate
+                })
+        
+        return drop_offs
+
+class UserInterviewsAPI(Tool):
+    """Real User Interviews platform integration"""
+    
+    def execute(self, params: Dict) -> Dict:
+        import requests
+        
+        # Create study
+        response = requests.post(
+            'https://api.userinterviews.com/v1/studies',
+            headers={'Authorization': f'Bearer {USER_INTERVIEWS_API_KEY}'},
+            json={
+                'title': params['title'],
+                'description': params['description'],
+                'participant_count': params['count'],
+                'screener_questions': params['screener'],
+                'incentive_amount': params['incentive'],
+                'duration_minutes': params['duration']
+            }
+        )
+        
+        study_data = response.json()
+        
+        return {
+            'study_id': study_data['id'],
+            'recruit_url': study_data['recruiting_url'],
+            'estimated_fill_time': study_data['estimated_completion_days'],
+            'cost': study_data['total_cost']
+        }
+
+class SlackClient(Tool):
+    """Send notifications to Slack"""
+    
+    def execute(self, params: Dict) -> Dict:
+        from slack_sdk import WebClient
+        
+        client = WebClient(token=SLACK_BOT_TOKEN)
+        
+        response = client.chat_postMessage(
+            channel=params['channel'],
+            text=params['message'],
+            blocks=params.get('blocks', [])
+        )
+        
+        return {
+            'message_ts': response['ts'],
+            'channel': response['channel']
+        }
+
+class MockupGenerator(Tool):
+    """Generate visual mockups"""
+    
+    def execute(self, params: Dict) -> Dict:
+        """
+        Params:
+        - type: 'landing' | 'onboarding' | 'dashboard'
+        - description: Natural language description
+        - style: 'minimal' | 'modern' | 'playful'
+        """
+        
+        # Option 1: HTML/CSS generation (MVP)
+        if params.get('method') == 'html':
+            html = self._generate_html_mockup(params)
+            return {'type': 'html', 'content': html}
+        
+        # Option 2: AI image generation (Phase 2)
+        elif params.get('method') == 'image':
+            image = self._generate_with_diffusion(params)
+            return {'type': 'image', 'url': image}
+    
+    def _generate_html_mockup(self, params):
+        """Generate HTML/CSS wireframe"""
+        
+        prompt = f"""
+        Generate complete HTML/CSS for a {params['type']} screen.
+        
+        Description: {params['description']}
+        Style: {params['style']}
+        
+        Include:
+        - Semantic HTML5
+        - Inline CSS (no external files)
+        - Responsive (mobile-first)
+        - Accessible (ARIA labels)
+        
+        Return only the HTML, no explanation.
+        """
+        
+        html = llm.generate(prompt, model='claude-sonnet-4')
+        
+        # Save to file
+        filepath = f"/outputs/mockup_{params['type']}_{uuid4()}.html"
+        with open(filepath, 'w') as f:
+            f.write(html)
+        
+        return {'filepath': filepath, 'html': html}
+```
+
+---
+
+### 4.4 Memory System (4 Layers)
+
+```python
+class MemorySystem:
+    def __init__(self):
+        self.working = WorkingMemory()      # Current goal context
+        self.episodic = EpisodicMemory()    # Session history
+        self.semantic = SemanticMemory()    # Long-term knowledge
+        self.procedural = ProceduralMemory() # Learned skills
+
+class WorkingMemory:
+    """
+    Active context for current goal
+    Short-term, volatile (cleared after goal completion)
+    """
+    
+    def __init__(self):
+        self.current_goal = None
+        self.active_hypotheses = []
+        self.observations = []
+        self.constraints = {}
+        self.progress = 0.0
+    
+    def update(self, thought: Thought, actions: List[Action], 
+               observation: Observation):
+        """Update after each ReAct cycle"""
+        
+        # Update hypotheses based on new evidence
+        for hyp in self.active_hypotheses:
+            if observation.confirms(hyp):
+                hyp.confidence += 0.15
+            elif observation.refutes(hyp):
+                hyp.confidence -= 0.20
+        
+        # Track progress toward goal
+        self.progress = self._calculate_progress()
+        
+        # Prune weak hypotheses
+        self.active_hypotheses = [h for h in self.active_hypotheses 
+                                   if h.confidence > 0.3]
+    
+    def context_for_llm(self) -> str:
+        """Compress working memory for LLM context"""
+        
+        return f"""
+        CURRENT GOAL: {self.current_goal.description}
+        PROGRESS: {self.progress}%
+        
+        ACTIVE HYPOTHESES:
+        {self._format_hypotheses()}
+        
+        KEY OBSERVATIONS:
+        {self._format_observations(top_k=5)}
+        
+        CONSTRAINTS:
+        {self.constraints}
+        """
+
+class EpisodicMemory:
+    """
+    What happened during this session
+    Persists for duration of goal, then archived
+    """
+    
+    def __init__(self):
+        self.events = []
+        self.session_start = datetime.now()
+    
+    def record(self, event_type: str, content: Any, **metadata):
+        """Record every thought, action, observation"""
+        
+        event = {
+            'timestamp': datetime.now(),
+            'type': event_type,  # 'thought' | 'action' | 'observation' | 'user_input'
+            'content': content,
+            'metadata': metadata
+        }
+        
+        self.events.append(event)
+    
+    def recent_events(self, n: int = 10) -> List[Dict]:
+        """Get last N events for context"""
+        return self.events[-n:]
+    
+    def get_relevant_to(self, query: str) -> List[Dict]:
+        """Retrieve events relevant to current reasoning"""
+        
+        query_embedding = get_embedding(query)
+        
+        scored = []
+        for event in self.events:
+            event_text = str(event['content'])
+            event_embedding = get_embedding(event_text)
+            similarity = cosine_similarity(query_embedding, event_embedding)
+            scored.append((similarity, event))
+        
+        scored.sort(reverse=True)
+        return [event for _, event in scored[:5]]
+    
+    def summarize_for_checkpoint(self) -> str:
+        """Human-readable summary of what agent did"""
+        
+        summary = []
+        
+        # Group by action type
+        actions_taken = [e for e in self.events if e['type'] == 'action']
+        key_observations = [e for e in self.events if e['type'] == 'observation' 
+                           and e.get('metadata', {}).get('important')]
+        
+        summary.append(f"Actions taken: {len(actions_taken)}")
+        for action in actions_taken[-10:]:  # Last 10 actions
+            summary.append(f"  • {action['content'].tool.name}: {action['content'].reason}")
+        
+        summary.append(f"\nKey findings:")
+        for obs in key_observations[-5:]:
+            summary.append(f"  • {obs['content']}")
+        
+        return "\n".join(summary)
+
+class SemanticMemory:
+    """
+    Long-term knowledge across ALL projects
+    Persists forever, grows with experience
+    """
+    
+    def __init__(self, vector_db: VectorDatabase):
+        self.db = vector_db
+        self.insights = []
+    
+    def store(self, insight: Insight):
+        """Store validated learning"""
+        
+        # Generate embedding
+        embedding = get_embedding(insight.to_text())
+        
+        # Save to vector DB
+        self.db.insert(
+            id=insight.id,
+            embedding=embedding,
+            metadata={
+                'type': insight.type,  # 'validated_hypothesis' | 'pain_point' | 'user_behavior'
+                'content': insight.content,
+                'confidence': insight.confidence,
+                'evidence': insight.evidence,
+                'project_id': insight.project_id,
+                'created': insight.created_at,
+                'tags': insight.tags,
+                'validation_method': insight.validation_method,
+                'effect_size': insight.effect_size
+            }
+        )
+    
+    def retrieve_relevant(self, query: str, context: Dict, top_k: int = 5) -> List[Insight]:
+        """Find past insights relevant to current situation"""
+        
+        # Vector search
+        query_embedding = get_embedding(query)
+        candidates = self.db.search(query_embedding, top_k=20)
+        
+        # Re-rank by contextual relevance
+        scored = []
+        for candidate in candidates:
+            relevance = self._calculate_relevance(candidate, context)
+            scored.append((relevance, candidate))
+        
+        scored.sort(reverse=True)
+        return [Insight.from_dict(c) for _, c in scored[:top_k]]
+    
+    def _calculate_relevance(self, insight: Dict, context: Dict) -> float:
+        """Multi-factor relevance scoring"""
+        
+        scores = {
+            # Semantic similarity (from vector search)
+            'embedding_match': insight.get('_score', 0.0),
+            
+            # Domain match
+            'industry_match': 1.0 if insight['tags'].get('industry') == context.get('industry') else 0.3,
+            
+            # Stage match
+            'stage_match': 1.0 if insight['tags'].get('stage') == context.get('stage') else 0.5,
+            
+            # Recency (newer = more relevant)
+            'recency': self._recency_score(insight['created']),
+            
+            # Confidence (higher = more trustworthy)
+            'confidence': insight['confidence'],
+            
+            # Usage count (proven useful)
+            'proven': min(insight.get('times_used', 0) / 10, 1.0)
+        }
+        
+        weights = {
+            'embedding_match': 0.30,
+            'industry_match': 0.20,
+            'stage_match': 0.15,
+            'recency': 0.15,
+            'confidence': 0.15,
+            'proven': 0.05
+        }
+        
+        return sum(scores[k] * weights[k] for k in scores)
+    
+    def cross_project_patterns(self) -> List[Pattern]:
+        """Find patterns that appear in multiple projects"""
+        
+        # Cluster insights by similarity
+        clusters = self.db.cluster(min_size=3)
+        
+        patterns = []
+        for cluster in clusters:
+            if len(cluster) >= 3:  # Appears in 3+ projects
+                pattern = Pattern(
+                    theme=self._extract_theme(cluster),
+                    occurrences=len(cluster),
+                    confidence=sum(i['confidence'] for i in cluster) / len(cluster),
+                    examples=cluster[:3]
+                )
+                patterns.append(pattern)
+        
+        return sorted(patterns, key=lambda p: p.confidence, reverse=True)
+
+class ProceduralMemory:
+    """
+    How to do things - learned skills
+    Improves with experience (reinforcement learning)
+    """
+    
+    def __init__(self):
+        self.skills = {}
+    
+    def learn_from_success(self, task_name: str, execution_trace: List[Action]):
+        """Learn from successful execution"""
+        
+        # Generalize from specific instance
+        pattern = self._generalize_trace(execution_trace)
+        
+        if task_name in self.skills:
+            # Update existing skill
+            skill = self.skills[task_name]
+            skill['pattern'] = self._merge_patterns(skill['pattern'], pattern)
+            skill['success_count'] += 1
+            skill['success_rate'] = skill['success_count'] / skill['total_attempts']
+        else:
+            # Create new skill
+            self.skills[task_name] = {
+                'pattern': pattern,
+                'success_count': 1,
+                'total_attempts': 1,
+                'success_rate': 1.0,
+                'contexts': []
+            }
+    
+    def learn_from_failure(self, task_name: str, execution_trace: List[Action], error: Error):
+        """Learn what NOT to do"""
+        
+        if task_name in self.skills:
+            skill = self.skills[task_name]
+            skill['total_attempts'] += 1
+            skill['success_rate'] = skill['success_count'] / skill['total_attempts']
+            
+            # Record failure pattern to avoid
+            skill.setdefault('anti_patterns', []).append({
+                'trace': execution_trace,
+                'error': error.message
+            })
+    
+    def apply_skill(self, task_name: str, current_context: Dict) -> List[Action]:
+        """Apply learned skill to new situation"""
+        
+        skill = self.skills.get(task_name)
+        if not skill:
+            return None
+        
+        if skill['success_rate'] < 0.5:
+            return None  # Don't use low-confidence skills
+        
+        # Adapt pattern to current context
+        adapted_actions = self._adapt_pattern(skill['pattern'], current_context)
+        
+        return adapted_actions
+```
+
+---
+
+### 4.5 Autonomy & Safety Layer
+
+```python
+class AutonomyManager:
+    """
+    Decides when agent needs human approval
+    Configurable autonomy levels
+    """
+    
+    LEVELS = {
+        'none': {
+            'description': 'Agent suggests, user approves every action',
+            'auto_execute': False,
+            'checkpoint_frequency': 'every_action'
+        },
+        'partial': {
+            'description': 'Agent executes data gathering, asks for conclusions',
+            'auto_execute': True,
+            'checkpoint_frequency': 'before_conclusions',
+            'auto_allowed': ['data_gathering', 'analysis']
+        },
+        'supervised': {
+            'description': 'Agent executes most tasks, checks in at key decisions',
+            'auto_execute': True,
+            'checkpoint_frequency': 'critical_only',
+            'auto_allowed': ['data_gathering', 'analysis', 'content_creation']
+        },
+        'full': {
+            'description': 'Agent executes everything, user reviews final output',
+            'auto_execute': True,
+            'checkpoint_frequency': 'final_only',
+            'manual_pause': True
+        }
+    }
+    
+    def __init__(self, default_level='supervised'):
+        self.current_level = default_level
+        self.budget_tracker = BudgetTracker()
+        self.risk_assessor = RiskAssessor()
+    
+    def needs_approval(self, action: Action, mission: Mission) -> bool:
+        """Decide if action requires human approval"""
+        
+        level = self.LEVELS[self.current_level]
+        
+        # Always ask for high-risk actions
+        if action.risk_level == 'high':
+            return True
+        
+        # Always ask if cost exceeds threshold
+        if action.estimated_cost > mission.approval_threshold_cost:
+            return True
+        
+        # Always ask for irreversible actions
+        if action.irreversible:
+            return True
+        
+        # Check autonomy level
+        if not level['auto_execute']:
+            return True  # 'none' level - ask for everything
+        
+        if level['checkpoint_frequency'] == 'every_action':
+            return True
+        
+        if level['checkpoint_frequency'] == 'before_conclusions':
+            return action.type in ['conclusion', 'recommendation', 'decision']
+        
+        if level['checkpoint_frequency'] == 'critical_only':
+            return action.type in ['user_facing_change', 'external_communication', 
+                                  'budget_commitment']
+        
+        if level['checkpoint_frequency'] == 'final_only':
+            return mission.is_near_completion()
+        
+        return False
+    
+    async def request_approval(self, action: Action) -> Approval:
+        """Present action to user for approval"""
+        
+        presentation = {
+            'action': action.description,
+            'reason': action.reason,
+            'cost': action.estimated_cost,
+            'time': action.estimated_time,
+            'risk': action.risk_level,
+            'alternatives': action.alternatives,
+            'consequences': {
+                'if_approved': action.expected_outcome,
+                'if_rejected': action.rejection_impact
+            }
+        }
+        
+        # Send to UI, wait for user response
+        response = await self.ui.show_approval_dialog(presentation)
+        
+        return Approval(
+            granted=response.approved,
+            feedback=response.feedback,
+            modifications=response.modifications
+        )
+
+class BudgetTracker:
+    """Track spending across time, money, API calls"""
+    
+    def __init__(self, limits: Dict):
+        self.limits = limits
+        self.spent = {
+            'money': 0.0,
+            'time_hours': 0.0,
+            'api_calls': 0
+        }
+    
+    def can_afford(self, action: Action) -> bool:
+        """Check if action fits within budget"""
+        
+        projected = {
+            'money': self.spent['money'] + action.estimated_cost,
+            'time_hours': self.spent['time_hours'] + action.estimated_time_hours,
+            'api_calls': self.spent['api_calls'] + action.api_calls
+        }
+        
+        for resource, limit in self.limits.items():
+            if projected[resource] > limit:
+                return False
+        
+        return True
+    
+    def record_spending(self, action: Action, actual: Dict):
+        """Update after action completes"""
+        
+        self.spent['money'] += actual.get('cost', action.estimated_cost)
+        self.spent['time_hours'] += actual.get('time_hours', action.estimated_time_hours)
+        self.spent['api_calls'] += actual.get('api_calls', action.api_calls)
+
+class RiskAssessor:
+    """Evaluate action risk levels"""
+    
+    def assess(self, action: Action, context: Dict) -> str:
+        """Return 'low' | 'medium' | 'high'"""
+        
+        risk_factors = {
+            'irreversibility': action.irreversible,
+            'user_facing': action.affects_users,
+            'cost': action.estimated_cost > 500,
+            'external': action.involves_external_parties,
+            'data_deletion': action.modifies_data and not action.has_backup
+        }
+        
+        risk_count = sum(risk_factors.values())
+        
+        if risk_count == 0:
+            return 'low'
+        elif risk_count <= 2:
+            return 'medium'
+        else:
+            return 'high'
+```
+
+---
+
+## 5. USER INTERFACE (Conversational + Live View)
+
+### 5.1 Conversational Interaction (Not Form-Based)
+
+```
+┌─────────────────────────────────────────────────────┐
+│  AI UX Researcher Agent                             │
+│                                                      │
+│  User: Our activation rate dropped from 40% to 25%. │
+│        Fix it. 2 weeks, $2k budget.                 │
+│                                                      │
+│  Agent: I'll investigate autonomously. My plan:     │
+│         1. Pull analytics (Mixpanel/Amplitude)       │
+│         2. Analyze support tickets & reviews         │
+│         3. Identify drop-off points                  │
+│         4. Interview users who didn't activate       │
+│         5. Form & test hypotheses                    │
+│         6. Recommend validated solution              │
+│                                                      │
+│         Estimated: 3 days, $1,200                    │
+│         Autonomy level: Supervised (I'll check in)   │
+│                                                      │
+│         [Start Investigation] [Modify Plan] [Settings]│
+└─────────────────────────────────────────────────────┘
+```
+
+### 5.2 Live Execution Viewer
+
+```
+┌─────────────────────────────────────────────────────┐
+│  AGENT STATUS: Working...                    [Pause] │
+│                                                      │
+│  Current Action:                                     │
+│  ✓ Pulling Mixpanel funnel data                     │
+│  ⟳ Analyzing 300 support tickets (2 min remaining)  │
+│  ⋯ Interview recruitment (queued)                    │
+│                                                      │
+│  Progress: 35% complete                              │
+│  Budget used: $420 / $2,000                          │
+│  Time elapsed: 4 hours / 2 weeks                     │
+│                                                      │
+│  Recent findings:                                    │
+│  • 60% drop-off at "connect integration" step       │
+│  • "Confused by OAuth" complaints ↑400%             │
+│                                                      │
+│  [View Full Trail] [Interrupt] [Send Feedback]      │
+└─────────────────────────────────────────────────────┘
+```
+
+### 5.3 Checkpoint Approval UI
+
+```
+┌─────────────────────────────────────────────────────┐
+│  CHECKPOINT: Agent needs your approval               │
+│                                                      │
+│  What happened so far:                              │
+│  ✓ Analyzed funnel → Found 60% drop at OAuth step  │
+│  ✓ Reviewed 300 tickets → Privacy concerns #1 issue│
+│  ✓ Interviewed 8 users → "Don't trust app access"  │
+│                                                      │
+│  Agent's recommendation:                             │
+│  Test 3 solutions:                                   │
+│   A. Explain value before OAuth (education)         │
+│   B. Skip OAuth, allow manual import                │
+│   C. Progressive permission (ask later)             │
+│                                                      │
+│  Next step: Run A/B tests with 20 users each        │
+│  Cost: $600, Time: 48 hours                         │
+│                                                      │
+│  [Approve] [Modify Plan] [Try Something Else]       │
+│  [Show Detailed Evidence] [Talk to Agent]           │
+└─────────────────────────────────────────────────────┘
+```
+
+### 5.4 Final Delivery
+
+```
+┌─────────────────────────────────────────────────────┐
+│  MISSION COMPLETE                                    │
+│                                                      │
+│  Goal: Fix activation rate decline                   │
+│  Result: Validated solution with 85% activation     │
+│          (vs. 25% current)                           │
+│                                                      │
+│  Summary:                                            │
+│  • Root cause: OAuth privacy concerns                │
+│  • Winning solution: Progressive permission          │
+│  • Evidence: Tested with 60 users, 95% confidence   │
+│  • Implementation: 2-week sprint                     │
+│                                                      │
+│  Deliverables ready:                                 │
+│  📄 PRD with full research trail                    │
+│  🎨 Figma mockups (3 screens)                       │
+│  📊 Analytics dashboard setup                        │
+│  🎫 Jira tickets (12 created)                       │
+│  📧 Stakeholder notification sent                    │
+│                                                      │
+│  [View All Deliverables] [Start Implementation]     │
+│  [Archive Project] [Start New Goal]                 │
+└─────────────────────────────────────────────────────┘
+```
+
+---
+
+## 6. COMPLETE FEATURE SET (Agentic)
+
+### Core Agentic Capabilities
+
+| Feature | Description | Priority |
+|---------|-------------|----------|
+| **Natural Language Goal Input** | User describes goal in plain English, agent parses | P0 |
+| **Dynamic Planning** | Generates conditional task graphs, not fixed pipelines | P0 |
+| **ReAct Loop** | Think → Act → Observe → Learn (continuous) | P0 |
+| **Autonomous Tool Execution** | Actually calls APIs, scrapes data, sends emails | P0 |
+| **Self-Correction** | Detects failures, tries alternatives, replans | P0 |
+| **Multi-Layer Memory** | Working, Episodic, Semantic, Procedural | P0 |
+| **Autonomy Levels** | None / Partial / Supervised / Full (user choice) | P0 |
+| **Checkpoint System** | Agent asks approval at critical points | P0 |
+| **Live Progress Viewer** | User sees agent working in real-time | P0 |
+| **Budget Tracking** | Monitors time, money, API usage | P0 |
+| **Kill Switch** | User can pause/stop agent anytime | P0 |
+| **Audit Log** | Every action recorded with reasoning | P0 |
+
+### Research Capabilities
+
+| Feature | Description | Priority |
+|---------|-------------|----------|
+| **Multi-Source Data Gathering** | Analytics, reviews, tickets, social, competitors | P0 |
+| **User Recruitment** | Auto-recruits participants via User Interviews API | P0 |
+| **Interview Analysis** | Transcribes, clusters themes, extracts insights | P1 |
+| **Survey Generation** | Creates surveys from hypotheses | P1 |
+| **Experiment Design** | A/B tests, prototype tests, fake door tests | P0 |
+| **Statistical Analysis** | Confidence intervals, significance testing | P1 |
+| **Competitor Monitoring** | Ongoing tracking of competitor changes | P1 |
+
+### Design & Creation
+
+| Feature | Description | Priority |
+|---------|-------------|----------|
+| **Mockup Generation** | HTML/CSS wireframes or AI-generated images | P0 |
+| **PRD Writing** | Auto-generates with full research context | P0 |
+| **Presentation Creation** | Stakeholder decks with findings | P1 |
+| **Prototype Creation** | Clickable prototypes for testing | P2 |
+| **Design System** | Pattern library from research | P2 |
+
+### Validation & Impact
+
+| Feature | Description | Priority |
+|---------|-------------|----------|
+| **Hypothesis Testing** | Designs & runs validation experiments | P0 |
+| **Business Impact Calculator** | ROI estimates for UX changes | P1 |
+| **Confidence Scoring** | Quantifies certainty in recommendations | P0 |
+| **Risk Assessment** | Flags potential issues with solutions | P1 |
+
+### Collaboration & Integration
+
+| Feature | Description | Priority |
+|---------|-------------|----------|
+| **Slack Integration** | Posts updates, asks questions | P1 |
+| **Jira/Linear Integration** | Creates tickets automatically | P1 |
+| **Notion Export** | Syncs research to Notion workspace | P2 |
+| **Email Notifications** | Updates stakeholders on progress | P1 |
+| **Calendar Integration** | Schedules meetings, interviews | P2 |
+
+### Learning & Improvement
+
+| Feature | Description | Priority |
+|---------|-------------|----------|
+| **Cross-Project Patterns** | Learns from past research | P1 |
+| **Skill Acquisition** | Gets better at tasks over time | P2 |
+| **User Feedback Loop** | Learns from user corrections | P1 |
+| **Benchmark Library** | Industry data for comparisons | P1 |
+
+---
+
+## 7. MVP SCOPE (Agentic MVP - 3 Months)
+
+### Month 1: Core Agentic Engine
+
+**Week 1-2: Foundation**
+- [ ] Goal parser (NL → structured mission)
+- [ ] Basic ReAct loop (Think → Act → Observe)
+- [ ] Working memory system
+- [ ] Autonomy manager (checkpoint logic)
+- [ ] Simple UI (conversational input + live view)
+
+**Week 3-4: Tool Integration**
+- [ ] 10 essential tools:
+  - Mixpanel/Amplitude API (analytics)
+  - Web scraper (reviews, competitors)
+  - User Interviews API (recruitment)
+  - Email client (communication)
+  - Slack client (notifications)
+  - Mockup generator (HTML/CSS)
+  - PRD generator (Markdown)
+  - Statistical analyzer
+  - Survey generator (Typeform API)
+  - Jira API (ticket creation)
+- [ ] Tool execution with error handling
+- [ ] Budget tracker
+
+**Milestone 1:** Agent can accept goal, generate plan, execute 3-5 tools autonomously, present checkpoint, complete simple research task
+
+---
+
+### Month 2: Memory & Self-Correction
+
+**Week 5-6: Memory Systems**
+- [ ] Episodic memory (session events)
+- [ ] Semantic memory (vector DB - Chroma/Pinecone)
+- [ ] Research vault (store validated insights)
+- [ ] Cross-project pattern detection
+
+**Week 7-8: Intelligence Upgrades**
+- [ ] Dynamic planning (conditional task graphs)
+- [ ] Self-correction (replan on failure)
+- [ ] Hypothesis generation & testing
+- [ ] Confidence scoring
+- [ ] Business impact calculator
+
+**Milestone 2:** Agent can handle complex multi-day goals, recover from failures, learn from past projects, provide high-confidence recommendations
+
+---
+
+### Month 3: Polish & Real-World Testing
+
+**Week 9-10: UX & Deliverables**
+- [ ] Improved UI (better live view, rich checkpoints)
+- [ ] Full deliverables menu (PRD, mockups, presentations)
+- [ ] Export to multiple formats
+- [ ] Stakeholder communication (email, Slack summaries)
+
+**Week 11-12: Testing & Iteration**
+- [ ] Beta testing with 10 PMs
+- [ ] Fix critical bugs
+- [ ] Optimize ReAct loop performance
+- [ ] Add 5 most-requested tools
+- [ ] Documentation & onboarding
+
+**Milestone 3:** Production-ready agentic MVP that can autonomously solve real PM problems
+
+---
+
+## 8. TECHNICAL STACK (Zero-Cost Agentic)
+
+### Backend
+```python
+# Core orchestration
+- Python 3.11+
+- FastAPI (async API server)
+- Pydantic (data validation)
+- asyncio (concurrent tool execution)
+
+# LLM (Reasoning Engine)
+- Ollama (local, free)
+  - Llama 3.2 70B for complex reasoning
+  - Llama 3.2 8B for simple tasks
+- Anthropic Claude API (fallback for critical decisions)
+
+# Memory & Storage
+- ChromaDB (vector database, local)
+- SQLite (structured data, events)
+- JSON files (deliverables, configurations)
+
+# Tool Integrations
+- requests / httpx (API calls)
+- Playwright (web scraping)
+- pandas (data analysis)
+- scipy.stats (statistical tests)
+- BeautifulSoup (HTML parsing)
+```
+
+### Frontend
+```python
+# UI Framework
+- Streamlit (rapid prototyping)
+  OR
+- Next.js + React (if need more control)
+  - Vercel deployment (free tier)
+  - Tailwind CSS
+  - shadcn/ui components
+
+# Real-time Updates
+- WebSocket (for live progress view)
+- Server-Sent Events (SSE) (simpler alternative)
+```
+
+### Infrastructure
+```
+# Development
+- Docker (consistent environment)
+- Git + GitHub (version control)
+
+# Deployment (Free Tier)
+- Backend: Railway / Render (free tier)
+- Frontend: Vercel / Netlify (free tier)
+- Vector DB: Pinecone free tier OR local ChromaDB
+
+# Monitoring
+- Sentry (error tracking, free tier)
+- Posthog (usage analytics, free tier)
+```
+
+---
+
+## 9. SUCCESS METRICS
+
+### Product Metrics
+| Metric | Target | How to Measure |
+|--------|--------|----------------|
+| **Goal Completion Rate** | >80% | Goals marked complete / total goals started |
+| **Time to Solution** | <3 days average | Time from goal input to final deliverable |
+| **Autonomous Action %** | >70% | Actions executed without approval / total actions |
+| **User Intervention Rate** | <5 times per goal | Number of times user pauses/corrects agent |
+| **Confidence in Recommendations** | 8+/10 | User rating of final recommendation quality |
+| **Self-Correction Success** | >60% | Failed actions recovered / total failures |
+
+### Business Metrics
+| Metric | Target | Timeline |
+|--------|--------|----------|
+| **Active Users (MAU)** | 100 | Month 6 |
+| **Retention (30-day)** | >50% | Month 6 |
+| **Goals per User** | 3+ per month | Month 6 |
+| **Conversion (Free→Paid)** | >15% | Month 9 |
+| **NPS** | >50 | Month 6 |
+
+### Technical Metrics
+| Metric | Target |
+|--------|--------|
+| **Agent Response Time** | <10s for reasoning steps |
+| **Tool Execution Success Rate** | >90% |
+| **Memory Retrieval Latency** | <500ms |
+| **API Uptime** | >99% |
+| **Cost per Goal** | <$2 (LLM + tool costs) |
+
+---
+
+## 10. RISKS & MITIGATIONS
+
+| Risk | Impact | Probability | Mitigation |
+|------|--------|-------------|------------|
+| **Agent makes wrong decisions** | High | Medium | • Checkpoint system (human approval)<br>• Confidence scoring<br>• Audit log for review<br>• Kill switch |
+| **LLM hallucinations** | High | Medium | • Show sources for every claim<br>• Validate tool outputs<br>• Cross-reference with semantic memory |
+| **Tool failures cascade** | Medium | Medium | • Fallback tools for each action<br>• Self-correction loop<br>• Graceful degradation |
+| **Budget overruns** | Medium | Low | • Real-time budget tracker<br>• Cost approval thresholds<br>• Hard caps on spending |
+| **User loses trust after failure** | High | Low | • Transparent reasoning trail<br>• Agent admits uncertainty<br>• Easy override/correction |
+| **Privacy/security issues** | High | Low | • No PII stored without consent<br>• Encrypted data at rest<br>• User controls data access |
+| **Complex goals agent can't handle** | Medium | High | • Agent detects complexity<br>• Suggests breaking into sub-goals<br>• Asks for human guidance early |
+| **Tool API changes break agent** | Medium | Medium | • Abstract tool interface<br>• Version pinning<br>• Automated testing<br>• Fallback to manual |
+
+---
+
+## 11. GO-TO-MARKET STRATEGY
+
+### Phase 1: Stealth Development (Months 1-3)
+- Build in private, test with 5 friendly PMs
+- Create demo videos of agent solving real problems
+- Write case studies ("How agent fixed activation in 2 days")
+
+### Phase 2: Limited Beta (Months 4-6)
+**Target:** 100 beta users (solo PMs at startups)
+
+**Acquisition:**
+- Post on Twitter/X ("I built an AI that does PM research autonomously")
+- Share on Reddit r/ProductManagement
+- Write blog posts: "The difference between AI assistants and AI agents"
+- Direct outreach to PMs in network
+
+**Positioning:**
+- "The first truly autonomous product research agent"
+- "Give it a goal, it solves it while you sleep"
+- Emphasize time savings: "3 days → 3 hours of PM time"
+
+### Phase 3: Public Launch (Month 7)
+**Channels:**
+- Product Hunt launch
+- YC Launch
+- Hacker News "Show HN"
+- PM newsletters (Lenny's, Product Hunt, Product Coalition)
+
+**Pricing (Initial):**
+```
+FREE TIER
+- 5 goals per month
+- Basic autonomy (supervised mode)
+- 7-day data retention
+- Community support
+
+PRO - $79/month
+- Unlimited goals
+- Full autonomy mode
+- 1-year data retention
+- Semantic memory (learns from your projects)
+- Priority tool access
+- Email support
+
+TEAM - $299/month (up to 5 users)
+- Everything in Pro
+- Shared memory across team
+- Slack integration
+- Custom tool integrations
+- Dedicated support
+```
+
+### Phase 4: Scale (Months 8-12)
+- Add enterprise features (SSO, audit logs, admin controls)
+- Build integrations ecosystem (Figma, Miro, Linear, etc.)
+- Community-driven tool contributions
+- API access for power users
+
+---
+
+## 12. COMPETITIVE POSITIONING
+
+### vs. GPT/Claude (Chat)
+| Them | Us |
+|------|-----|
+| Reactive (waits for prompts) | Proactive (pursues goals) |
+| No memory (forgets context) | Multi-layer memory (learns forever) |
+| No tool execution (just suggests) | Actually executes (calls APIs, scrapes, recruits) |
+| One-shot responses | Iterative until goal met |
+| No self-correction | Self-corrects and replans |
+
+### vs. Maze / UserTesting (Research Tools)
+| Them | Us |
+|------|-----|
+| Manual setup (you create tests) | Autonomous (agent creates & runs tests) |
+| Single-method (just testing) | Multi-method (mixed research) |
+| Siloed (just one tool) | Full workflow (research → design → PRD) |
+| No context memory | Learns from past projects |
+| Step-by-step | End-to-end autonomous |
+
+### vs. AutoGPT / BabyAGI (Agentic Tools)
+| Them | Us |
+|------|-----|
+| General purpose | Specialized for product research |
+| Brittle (fails often) | Self-correcting (recovers from failures) |
+| No domain knowledge | Product/UX expertise built-in |
+| No long-term memory | Research vault with cross-project learning |
+| Technical users only | PM-friendly conversational UI |
+
+**Unique Value Prop:**
+> "The only AI agent that autonomously runs product research from goal to implementation-ready solution, learning from every project to get smarter over time."
+
+---
+
+## 13. OPEN QUESTIONS & DECISIONS NEEDED
+
+### Technical Decisions
+1. **LLM Strategy:**
+   - Pure local (Ollama) vs. hybrid (Ollama + Claude API)?
+   - Cost-benefit of local 70B vs. API calls?
+
+2. **Memory Architecture:**
+   - ChromaDB (local) vs. Pinecone (cloud)?
+   - How to handle large episodic memory (compression strategy)?
+
+3. **Tool Execution:**
+   - Synchronous (blocking) vs. async (parallel)?
+   - Retry logic: exponential backoff or immediate?
+
+4. **UI Framework:**
+   - Streamlit (faster MVP) vs. Next.js (better UX)?
+   - Mobile app needed or web-only for MVP?
+
+### Product Decisions
+5. **Autonomy Default:**
+   - Start with 'supervised' (safe) or 'partial' (faster)?
+   - Let users choose upfront or learn over time?
+
+6. **Pricing Model:**
+   - Per-goal usage-based or flat subscription?
+   - Free tier: 5 goals or 10 goals per month?
+   - Team pricing: per seat or flat team rate?
+
+7. **Tool Priority:**
+   - Which 10 tools are MUST-HAVE for MVP?
+   - Which integrations drive most value?
+
+8. **Scope Creep:**
+   - Do we build team collaboration in MVP or Phase 2?
+   - Is live product analytics (Gap 4) critical or nice-to-have?
+
+### Go-to-Market Decisions
+9. **Initial Target:**
+   - Solo PMs at startups (easier to sell)?
+   - Design teams at scale-ups (bigger budgets)?
+   - Both (diluted messaging)?
+
+10. **Beta Access:**
+    - Invite-only exclusivity or open beta?
+    - Charge for beta or free for feedback?
+
+---
+
+## 14. NEXT STEPS (IMMEDIATE ACTION PLAN)
+
+### This Week (Week 1)
+**Day 1-2: Architecture Setup**
+- [ ] Set up Python project structure
+- [ ] Install Ollama + Llama 3.2 locally
+- [ ] Create basic FastAPI server
+- [ ] Set up ChromaDB for vector storage
+
+**Day 3-4: Core Loop Prototype**
+- [ ] Implement basic ReAct loop
+- [ ] Goal parser (hardcoded examples first)
+- [ ] Working memory structure
+- [ ] Simple thought generation
+
+**Day 5-7: First Tool Integration**
+- [ ] Build tool registry framework
+- [ ] Implement 3 essential tools:
+  1. Web scraper (competitor research)
+  2. Mockup generator (HTML/CSS)
+  3. Text analyzer (clustering, sentiment)
+- [ ] Test end-to-end: goal → plan → execute → result
+
+**Week 1 Milestone:** Agent can accept simple goal ("Research competitor X"), autonomously scrape their site, generate mockup, present findings
+
+---
+
+### Week 2-4: Expand to 10 Tools + Checkpoints
+- [ ] Add 7 more tools (analytics, recruitment, communication)
+- [ ] Build autonomy manager + checkpoint UI
+- [ ] Episodic memory (session logging)
+- [ ] Self-correction logic (retry on failure)
+
+**Month 1 Milestone:** Working agentic MVP that can solve simple research tasks autonomously
+
+---
+
+## 15. APPENDIX: KEY DIFFERENCES FROM OLD PRD
+
+| Aspect | Old PRD (Tool) | New PRD (Agent) |
+|--------|----------------|-----------------|
+| **User Input** | Step-by-step questions | Single goal statement |
+| **Execution** | Sequential pipeline | Autonomous ReAct loop |
+| **Decision Making** | User chooses options | Agent reasons and decides |
+| **Memory** | SQLite (session only) | 4-layer memory (working, episodic, semantic, procedural) |
+| **Failure Handling** | Stops and waits | Self-corrects and replans |
+| **Tool Use** | Suggests tools | Actually executes tools |
+| **Interaction** | Form-based | Conversational + checkpoints |
+| **Learning** | None | Learns from every project |
+| **Scope** | Research assistant | End-to-end autonomous problem solver |
+| **Build Time** | 4-6 weeks | 3-4 months |
+| **Complexity** | Moderate | High |
+| **Differentiation** | Weak (many competitors) | Strong (true autonomy) |
+
+---
+
+## 16. FINAL RECOMMENDATION
+
+### Build This If:
+✅ You want to build something **truly differentiated** (not another AI wrapper)  
+✅ You're comfortable with **higher technical complexity**  
+✅ You can commit to **3-4 months of focused development**  
+✅ You believe **agentic AI is the future** of product tools  
+✅ You want to **learn cutting-edge AI architecture**  
+
+### Don't Build This If:
+❌ You need revenue in <6 months  
+❌ You want a simple MVP to test quickly  
+❌ You're uncomfortable with AI making autonomous decisions  
+❌ You don't have technical co-founder or dev skills  
+
+---
+
+## READY TO BUILD?
+
+Next step: **Answer these 3 questions:**
+
+1. **Are you committed to building true agentic AI?** (not the simpler tool from old PRD)
+
+2. **Timeline: 3 months to MVP or need faster?**
+
+3. **What's your technical setup?** (coding experience, team, budget for tools)
+
+Once you answer, I'll create:
+- **Week 1 detailed build plan** (exactly what to code each day)
+- **Starter code templates** (ReAct loop, tool registry, etc.)
+- **Testing scenarios** (how to validate each component)
+
+Let's build the future of product research. 🚀
+
+---
+
+
+
+plain
+Copy
+   **Complete Component List & Build Plan**
+Phase 1: Core Infrastructure (Week 1-2)
+Table
+Copy
+Component	Files	Description	Testing
+Config	core/config.py, core/constants.py	Pydantic v2 settings, env vars, dual mode	Unit tests, env validation
+Database	database/models.py, database/session.py, database/migrations/	SQLAlchemy 2.0, SQLite/Supabase, Alembic	DB tests, migration tests
+Logging	core/logging.py	Structlog JSON, rotation	Log output validation
+AI Manager	ai/manager.py, ai/ollama.py, ai/openrouter.py	Multi-model, fallbacks, health checks	Mock tests, integration
+Observability	observability/langfuse.py, observability/metrics.py	Tracing, cost tracking, alerts	Trace validation
+Phase 2: Agents (Week 3-6)
+Table
+Copy
+Agent	Files	Core Features	Testing
+Data Agent	agents/data/agent.py, agents/data/kaggle.py, agents/data/ga4.py, agents/data/upload.py	Kaggle API, GA4 BigQuery, Excel/CSV, LLM demo mode	API mocks, real queries, data validation
+PRD Agent	agents/prd/agent.py, agents/prd/templates.py, agents/prd/sections.py	Executive summary, requirements, timeline, risks	Output validation, template tests
+UI/UX Designer	agents/ui_ux/agent.py, agents/ui_ux/wireframe.py, agents/ui_ux/tokens.py, agents/ui_ux/prototype.py	Wireframes (PIL), design tokens (W3C), HTML prototypes, specs	Image tests, HTML validation, token schema
+Phase 3: API Layer (Week 7-8)
+Table
+Copy
+Component	Files	Features	Testing
+FastAPI App	api/main.py, api/dependencies.py, api/lifespan.py	Lifespan, DI, middleware, error handling	Integration tests, load tests
+HTTP Routes	api/routes/agents.py, api/routes/data.py, api/routes/reports.py	REST endpoints, validation, pagination	Endpoint tests, auth tests
+WebSocket	api/websocket/manager.py, api/websocket/handlers.py	Real-time updates, broadcasting, rooms	Connection tests, message tests
+Phase 4: Frontend (Week 9-12)
+Table
+Copy
+Component	Files	Features	Testing
+Next.js 14	frontend/app/, frontend/components/, frontend/hooks/	App router, SSR, streaming	Component tests, E2E
+UI System	frontend/components/ui/, frontend/styles/design-tokens.ts	Radix + Tailwind, dark mode, tokens	Visual regression, a11y
+Agent Dashboard	frontend/components/agents/, frontend/app/agents/page.tsx	Status, logs, checkpoints, results	Integration tests
+Real-time	frontend/hooks/useWebSocket.ts, frontend/components/real-time/	WebSocket client, streaming UI	Connection tests
+Phase 5: Testing & QA (Week 13-14)
+Table
+Copy
+Type	Scope	Tools
+Unit	All functions, classes	pytest, pytest-asyncio, coverage
+Integration	API endpoints, DB, AI clients	httpx, testcontainers
+E2E	Full user flows	Playwright, Cypress
+Load	Concurrent users, rate limits	locust, k6
+Security	Auth, injection, XSS	bandit, safety, trivy
+Phase 6: Deployment (Week 15)
+Table
+Copy
+Component	Files	Platform
+Docker	docker/Dockerfile.backend, docker/Dockerfile.frontend, docker-compose.yml	Multi-stage builds
+CI/CD	.github/workflows/test.yml, .github/workflows/deploy.yml	GitHub Actions
+Infra	terraform/, k8s/	AWS/GCP/Azure
+Evaluation & Improvement Cycle
+After each phase:
+Run all tests - Must pass 100%
+Code review - Check against standards
+Performance test - Latency, throughput
+Security audit - Scan dependencies
+Documentation - Update API docs, README
+Iterate - Fix issues, improve coverage
+Total: 15 weeks, 40+ files, ~8000 lines of code
+This is what you actually need. Not a single session, but proper engineering.

@@ -1,0 +1,83 @@
+# ==========================================
+# Agentic Research AI - Python Dependencies
+# ==========================================
+
+# Core Framework
+fastapi==0.109.2
+uvicorn[standard]==0.27.1
+pydantic==2.6.1
+pydantic-settings==2.1.0
+python-multipart==0.0.9
+python-dotenv==1.0.1
+
+# Database (Async SQLAlchemy 2.0)
+sqlalchemy[asyncio]==2.0.25
+aiosqlite==0.19.0
+asyncpg==0.29.0          # For PostgreSQL/Supabase
+alembic==1.13.1          # Migrations
+
+# AI & LLM
+aiohttp==3.9.3           # Async HTTP for Ollama, APIs
+openai==1.12.0           # OpenAI API (optional)
+anthropic==0.18.0        # Anthropic API (optional)
+google-generativeai==0.3.2  # Gemini API (optional)
+
+# Vector Database & Embeddings
+chromadb==0.4.22         # Semantic memory
+sentence-transformers==2.3.1  # Embeddings
+
+# Memory & Caching
+redis==5.0.1             # Optional: Working memory cache
+hiredis==2.3.2           # Redis performance boost
+
+# Data Processing
+pandas==2.2.0            # Data manipulation
+openpyxl==3.1.2          # Excel files
+kaggle==1.6.6            # Kaggle datasets (optional)
+numpy==1.26.3            # Numerical computing
+scipy==1.12.0            # Scientific computing
+
+# Analytics Connectors (Real Mode)
+posthog==3.4.0           # PostHog analytics (optional)
+google-cloud-bigquery==3.17.1  # GA4 BigQuery (optional)
+
+# Web Scraping & Tools
+beautifulsoup4==4.12.3   # HTML parsing
+lxml==5.1.0              # XML/HTML processing
+playwright==1.41.2       # Browser automation (optional)
+
+# Image Generation (UI/UX Agent)
+Pillow==10.2.0           # Wireframe generation
+cairosvg==2.7.1          # SVG rendering
+
+# Observability & Monitoring
+langfuse==2.23.0         # LLM tracing (optional)
+structlog==24.1.0        # Structured logging
+
+# Testing
+pytest==8.0.0
+pytest-asyncio==0.23.4
+pytest-cov==4.1.0
+httpx==0.26.0            # Async HTTP client for testing
+faker==22.6.0            # Fake data generation
+
+# Development Tools
+black==24.1.1            # Code formatting
+isort==5.13.2            # Import sorting
+flake8==7.0.0            # Linting
+mypy==1.8.0              # Type checking
+pre-commit==3.6.0        # Git hooks
+
+# Security
+python-jose[cryptography]==3.3.0  # JWT (future auth)
+passlib[bcrypt]==1.7.4   # Password hashing (future)
+
+# Utilities
+python-dateutil==2.8.2
+pytz==2024.1
+click==8.1.7             # CLI tools
+rich==13.7.0             # Rich terminal output
+tqdm==4.66.1             # Progress bars
+
+# WebSocket
+websockets==12.0

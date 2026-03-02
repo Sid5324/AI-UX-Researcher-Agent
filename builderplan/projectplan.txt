@@ -1,0 +1,882 @@
+plain
+Copy
+   **Complete Technical Specification for Professional AI Engineer**
+1. System Architecture Overview
+1.1 High-Level Data Flow
+plain
+Copy
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              USER INTERFACE                                  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │
+│  │ Mode Select  │→ │ Goal Input   │→ │ Dashboard    │→ │ Results      │    │
+│  │ (Real/Demo)  │  │ (Natural Lang)│  │ (Real-time)  │  │ (PRD/Design) │    │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘    │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              API LAYER (FastAPI)                            │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │
+│  │ /goals       │  │ /agents      │  │ /websocket   │  │ /data        │    │
+│  │ POST/GET     │  │ /{id}/run    │  │ /stream      │  │ /upload      │    │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘    │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           ORCHESTRATOR (LangGraph)                          │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │
+│  │ State Machine│→ │ Checkpoint   │→ │ Agent Router │→ │ Debate       │    │
+│  │ (ReAct Loop) │  │ (Human-in-Loop)│ │ (Sequential) │  │ (Critical)   │    │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘    │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              AGENT LAYER                                     │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐             │
+│  │   DATA AGENT    │  │   PRD AGENT     │  │  UI/UX AGENT    │             │
+│  │                 │  │                 │  │                 │             │
+│  │ • Kaggle API    │  │ • Research Synth│  │ • Wireframes    │             │
+│  │ • GA4 BigQuery  │  │ • PRD Sections  │  │ • Design Tokens │             │
+│  │ • User Upload   │  │ • Executive Sum │  │ • Prototypes    │             │
+│  │ • LLM Demo Data │  │ • Tech Specs    │  │ • Specs         │             │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘             │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           INFRASTRUCTURE LAYER                               │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │
+│  │ Ollama       │  │ Supabase/    │  │ Langfuse     │  │ ChromaDB     │    │
+│  │ (llama3.1)   │  │ SQLite       │  │ (Tracing)    │  │ (Memory)     │    │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘    │
+└─────────────────────────────────────────────────────────────────────────────┘
+1.2 Component Interaction Diagram
+plain
+Copy
+User → Frontend → FastAPI → Orchestrator → Agents → Tools/Models → Storage
+         ↑           ↑           ↑            ↑         ↑            ↑
+         └───────────┴───────────┴────────────┴─────────┴────────────┘
+              WebSocket (real-time updates) / HTTP (requests)
+2. Core Infrastructure Specifications
+2.1 Configuration System
+File: backend/src/core/config.py
+Purpose: Centralized configuration with environment variable support, validation, and dual mode switching.
+Key Classes:
+Python
+Copy
+class Settings(BaseSettings):
+    """
+    Pydantic v2 settings with env var support.
+    All sensitive values loaded from .env file.
+    """
+    
+    # Application
+    app_name: str = "Agentic Research AI"
+    app_mode: Literal["real", "demo"] = Field(default="demo")
+    debug: bool = Field(default=False)
+    
+    # Database
+    database_url: str = Field(default="sqlite+aiosqlite:///./data/demo.db")
+    
+    # Ollama
+    ollama_base_url: str = Field(default="http://localhost:11434")
+    ollama_model: str = Field(default="llama3.1:8b")
+    ollama_fallback_models: str = Field(default="qwen2.5-coder:7b,llava:7b")
+    
+    # API Keys (optional based on mode)
+    openrouter_api_key: Optional[str] = None
+    gemini_api_key: Optional[str] = None
+    kaggle_username: Optional[str] = None
+    kaggle_key: Optional[str] = None
+    
+    # Langfuse
+    langfuse_public_key: Optional[str] = None
+    langfuse_secret_key: Optional[str] = None
+    langfuse_host: str = "https://cloud.langfuse.com"
+Behavior:
+Loads from .env file on startup
+Validates app_mode is "real" or "demo"
+Uses lru_cache for singleton pattern
+Fails fast on missing required vars in "real" mode
+Usage Pattern:
+Python
+Copy
+from backend.src.core.config import get_settings
+
+settings = get_settings()
+
+if settings.app_mode == "real":
+    # Require API keys
+    assert settings.kaggle_username, "Kaggle username required in real mode"
+2.2 Database Layer
+File: backend/src/database/models.py
+Purpose: Async SQLAlchemy 2.0 models with type hints, supporting both SQLite (demo) and PostgreSQL (real).
+Key Models:
+ResearchGoal
+Python
+Copy
+class ResearchGoal(Base):
+    """
+    Central entity tracking research projects from start to finish.
+    """
+    __tablename__ = "research_goals"
+    
+    id: Mapped[str] = mapped_column(primary_key=True, default=uuid4)
+    description: Mapped[str]  # User's natural language goal
+    mode: Mapped[str]  # "real" or "demo"
+    status: Mapped[str] = mapped_column(default="pending") 
+    # pending → running → checkpoint → completed/failed
+    
+    # Progress tracking
+    current_agent: Mapped[Optional[str]]  # Which agent is running
+    progress_percent: Mapped[float] = mapped_column(default=0.0)
+    
+    # Results (JSON for flexibility)
+    findings: Mapped[Optional[Dict]] = mapped_column(JSON, nullable=True)
+    final_output: Mapped[Optional[Dict]] = mapped_column(JSON, nullable=True)
+    
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(onupdate=utcnow)
+    completed_at: Mapped[Optional[datetime]]
+Behavior:
+findings stores intermediate results from each agent
+final_output stores complete deliverable (PRD, design system, etc.)
+Status transitions managed by Orchestrator
+mode set once at creation, never changes
+Relationships:
+One-to-Many with AgentState (each goal has multiple agent runs)
+One-to-Many with Checkpoint (human approvals)
+AgentState
+Python
+Copy
+class AgentState(Base):
+    """
+    Tracks execution state of individual agents within a goal.
+    Implements ReAct loop: thinking → acting → observing → learning
+    """
+    __tablename__ = "agent_states"
+    
+    id: Mapped[str] = mapped_column(primary_key=True, default=uuid4)
+    goal_id: Mapped[str] = mapped_column(ForeignKey("research_goals.id"))
+    agent_type: Mapped[str]  # "data", "prd", "ui_ux"
+    
+    # ReAct loop state
+    status: Mapped[str]  # thinking, acting, observing, learning, complete, error
+    current_action: Mapped[Optional[str]]  # What tool/action is being executed
+    last_observation: Mapped[Optional[str]]  # Result from last action
+    
+    # Quality metrics
+    confidence: Mapped[float] = mapped_column(default=0.0)  # 0.0-1.0
+    error_count: Mapped[int] = mapped_column(default=0)
+    
+    # Memory references (for RAG)
+    memory_refs: Mapped[Optional[List[str]]] = mapped_column(JSON)
+    
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+Behavior:
+Created when agent starts, updated continuously
+status transitions follow ReAct loop
+confidence updated after each observation
+memory_refs stores IDs of relevant past insights
+Checkpoint
+Python
+Copy
+class Checkpoint(Base):
+    """
+    Human-in-the-loop approval points.
+    Agent pauses, presents options, waits for user input.
+    """
+    __tablename__ = "checkpoints"
+    
+    id: Mapped[str] = mapped_column(primary_key=True, default=uuid4)
+    goal_id: Mapped[str] = mapped_column(ForeignKey("research_goals.id"))
+    agent_type: Mapped[str]
+    
+    # Presentation
+    title: Mapped[str]  # "Validate Hypothesis", "Choose Solution", etc.
+    description: Mapped[str]  # Detailed explanation
+    data_preview: Mapped[Optional[Dict]] = mapped_column(JSON)  # Key metrics
+    
+    # Options for user
+    options: Mapped[List[Dict]] = mapped_column(JSON)  
+    # [{"id": "option_a", "label": "Proceed with A", "next": "continue"}, ...]
+    
+    recommendation: Mapped[Optional[str]]  # Agent's suggested option
+    
+    # Resolution
+    resolved: Mapped[bool] = mapped_column(default=False)
+    user_choice: Mapped[Optional[str]]  # Which option_id was selected
+    user_feedback: Mapped[Optional[str]]  # Free text feedback
+    
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+    resolved_at: Mapped[Optional[datetime]]
+Behavior:
+Created by Orchestrator when agent needs human input
+WebSocket notifies frontend immediately
+Agent polls database until resolved=True
+user_feedback optional, used for training/improvement
+2.3 AI Model Manager
+File: backend/src/ai/manager.py
+Purpose: Unified interface to multiple AI providers with automatic fallback, health checks, and structured output support.
+Key Classes:
+Python
+Copy
+class GenerationResult:
+    """Standardized result across all providers"""
+    success: bool
+    content: str
+    model: str
+    provider: str
+    error: Optional[str] = None
+    tool_calls: Optional[List[Dict]] = None
+    usage: Optional[Dict] = None  # tokens, cost, latency
+
+class OllamaClient:
+    """
+    Local LLM client with function calling support (llama3.1+).
+    Primary provider for cost control and privacy.
+    """
+    
+    async def generate(
+        self, 
+        prompt: str, 
+        system_prompt: Optional[str] = None,
+        tools: Optional[List[Dict]] = None,
+        temperature: float = 0.2,
+        max_tokens: int = 4096
+    ) -> GenerationResult:
+        """
+        Generate with Ollama API.
+        
+        For llama3.1+, supports function calling via tools parameter.
+        Falls back to regular chat if tools not supported.
+        """
+        # Implementation details:
+        # - POST to /api/chat
+        # - Include tools in payload for llama3.1+
+        # - Parse tool_calls from response if present
+        # - Handle timeouts (120s for large generations)
+        # - Return structured GenerationResult
+
+class AIModelManager:
+    """
+    Central manager for all AI providers.
+    Implements fallback chain: Primary → Fallbacks → Error
+    """
+    
+    def __init__(self):
+        self.primary = OllamaClient(settings.ollama_model)
+        self.fallbacks = [
+            OllamaClient(model) 
+            for model in settings.ollama_fallback_models.split(",")
+        ]
+        # Cloud providers (disabled until API keys provided)
+        self.openrouter = None
+        self.gemini = None
+    
+    async def generate_with_fallback(
+        self,
+        agent_type: str,  # "data", "prd", "ui_ux"
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        require_json: bool = False  # For structured outputs
+    ) -> GenerationResult:
+        """
+        Generate with automatic fallback on failure.
+        
+        Agent-specific system prompts based on agent_type:
+        - data: "You are a data analyst. Be precise, cite numbers."
+        - prd: "You are a principal PM. Be structured, actionable."
+        - ui_ux: "You are a staff designer. Be visual, detailed."
+        """
+        # Try primary
+        result = await self.primary.generate(prompt, system_prompt)
+        if result.success:
+            return result
+        
+        # Try each fallback
+        for client in self.fallbacks:
+            result = await client.generate(prompt, system_prompt)
+            if result.success:
+                return result
+        
+        # All failed
+        return GenerationResult(
+            success=False,
+            error="All AI models failed",
+            model="none",
+            provider="none",
+            content=""
+        )
+Behavior:
+Always tries local Ollama first (cost, privacy, latency)
+Falls back through qwen2.5-coder, llava, etc.
+Cloud providers (OpenRouter, Gemini) only if enabled and local fails
+Tracks usage per agent for cost analysis
+2.4 Observability (Langfuse)
+File: backend/src/observability/langfuse_client.py
+Purpose: Production tracing, cost tracking, and debugging for all agent operations.
+Key Functions:
+Python
+Copy
+from langfuse.decorators import observe
+
+@observe(as_type="generation")
+async def generate_with_ai(
+    prompt: str,
+    system_prompt: str,
+    model: str
+) -> str:
+    """
+    Wrapped AI generation with full tracing.
+    
+    Captures:
+    - Input prompt (sanitized)
+    - Output content
+    - Token usage
+    - Latency
+    - Cost (if available)
+    """
+    result = await ai_manager.generate(prompt, system_prompt)
+    return result.content
+
+@observe(as_type="span")
+async def run_data_agent(goal: ResearchGoal) -> Dict:
+    """
+    Full agent execution trace.
+    
+    Nested spans for:
+    - Data fetching
+    - Analysis
+    - Hypothesis generation
+    """
+    # Implementation creates nested traces automatically
+Behavior:
+Every AI call traced with input/output
+Agent runs create spans with nested operations
+Checkpoints logged as distinct events
+Cost accumulated per goal for budget tracking
+Debug view shows full ReAct loop execution
+3. Agent Specifications
+3.1 Data Agent
+File: backend/src/agents/data/agent.py
+Purpose: Research analyst that gathers and analyzes data from multiple sources (Kaggle, GA4 BigQuery, user uploads, or LLM-generated demo data).
+Class Definition:
+Python
+Copy
+class DataAgent:
+    """
+    Professional data analyst agent.
+    Capabilities: Data fetching, cleaning, analysis, hypothesis generation.
+    """
+    
+    def __init__(self, mode: str, goal_id: str):
+        self.mode = mode  # "real" or "demo"
+        self.goal_id = goal_id
+        self.ai = get_ai_manager()
+        self.memory = get_memory()
+        
+        # Source connectors (real mode only)
+        self.kaggle = KaggleConnector() if mode == "real" else None
+        self.ga4 = GA4BigQueryConnector() if mode == "real" else None
+        self.upload = UploadConnector()  # Always available
+        
+        # State tracking
+        self.findings = []
+        self.confidence = 0.0
+    
+    @observe(as_type="agent")
+    async def run(self, goal_description: str) -> DataAgentResult:
+        """
+        Execute full data research workflow.
+        
+        Phase 1: THINK - Parse goal, identify data needs
+        Phase 2: ACT - Fetch data from appropriate sources
+        Phase 3: OBSERVE - Clean, analyze, identify patterns
+        Phase 4: LEARN - Form hypothesis, validate with data
+        """
+        # Implementation follows ReAct loop
+        # Updates database after each phase
+        # Returns structured result with findings and confidence
+    
+    async def _think(self, goal: str) -> Dict:
+        """Analyze goal and plan data strategy"""
+        # Use AI to parse goal
+        # Identify: metrics needed, time range, data sources
+        # Return execution plan
+    
+    async def _act_fetch_data(self, plan: Dict) -> pd.DataFrame:
+        """Fetch data based on mode"""
+        if self.mode == "demo":
+            return await self._generate_demo_data(plan)
+        else:
+            # Try real sources in order: upload > kaggle > ga4
+            pass
+    
+    async def _generate_demo_data(self, plan: Dict) -> pd.DataFrame:
+        """LLM generates realistic synthetic data"""
+        # Prompt engineering for realistic distributions
+        # Include correlations, outliers, seasonality
+        # Return DataFrame
+Data Sources:
+KaggleConnector
+Python
+Copy
+class KaggleConnector:
+    """Download and cache Kaggle datasets"""
+    
+    async def search(self, query: str) -> List[Dataset]:
+        """Search Kaggle for relevant datasets"""
+        # Use kagglehub or Kaggle API
+    
+    async def download(self, dataset_ref: str) -> pd.DataFrame:
+        """
+        Download dataset to local cache.
+        Returns DataFrame with automatic type inference.
+        """
+        # kagglehub.dataset_download()
+        # Read CSV/Parquet
+        # Cache locally
+        # Return DataFrame
+GA4BigQueryConnector
+Python
+Copy
+class GA4BigQueryConnector:
+    """Query Google Analytics 4 public ecommerce dataset"""
+    
+    async def query_funnel(self, steps: List[str], days: int = 30) -> pd.DataFrame:
+        """
+        Query funnel data from GA4 public dataset.
+        Free tier: 1TB/month
+        """
+        # Build BigQuery SQL
+        # Query bigquery-public-data.ga4_obfuscated_sample_ecommerce
+        # Return funnel DataFrame
+    
+    async def query_events(self, event_name: str, date_range: Tuple) -> pd.DataFrame:
+        """Query specific event data"""
+Output Format:
+Python
+Copy
+class DataAgentResult(BaseModel):
+    hypothesis: str  # "Users drop off at checkout due to unexpected shipping costs"
+    confidence: float  # 0.0-1.0
+    supporting_evidence: List[Evidence]  # Charts, stats, quotes
+    recommended_next_step: str  # "Validate with user interviews"
+    raw_data: Optional[pd.DataFrame]  # Full dataset for further analysis
+3.2 PRD Agent
+File: backend/src/agents/prd/agent.py
+Purpose: Principal Product Manager that synthesizes research into professional Product Requirements Documents.
+Class Definition:
+Python
+Copy
+class PRDAgent:
+    """
+    Professional PM agent.
+    Capabilities: Research synthesis, PRD writing, executive summaries.
+    """
+    
+    async def run(
+        self,
+        research_data: Dict,  # From Data Agent
+        goal_description: str
+    ) -> PRDResult:
+        """
+        Generate complete PRD with all sections.
+        
+        Sections:
+        1. Executive Summary
+        2. Problem Statement
+        3. Goals & Success Metrics
+        4. User Research
+        5. Solution Approach
+        6. Technical Requirements
+        7. Timeline & Milestones
+        8. Risks & Mitigations
+        """
+        
+        # Generate each section with AI
+        # Use structured outputs (JSON mode)
+        # Compile into final markdown/HTML
+        
+        pass
+Section Specifications:
+Table
+Copy
+Section	Content	Length	Format
+Executive Summary	Key findings, recommendation, expected impact	2-3 paragraphs	Markdown
+Problem Statement	User pain points, current state, opportunity	1 paragraph + bullet points	Markdown
+Goals & Success Metrics	SMART goals, KPIs, measurement plan	Table	Markdown table
+User Research	Data findings, user quotes, behavior patterns	Sections with data	Markdown + charts
+Solution Approach	Proposed solution, alternatives considered, rationale	2-3 paragraphs + comparison table	Markdown
+Technical Requirements	Functional reqs, non-functional reqs, dependencies	Bulleted lists	Markdown
+Timeline & Milestones	Phase breakdown, key dates, deliverables	Gantt-style table	Markdown table
+Risks & Mitigations	Risk matrix, severity, mitigation strategies	Table	Markdown table
+Output Format:
+Python
+Copy
+class PRDResult(BaseModel):
+    title: str
+    version: str = "1.0"
+    sections: Dict[str, str]  # section_name -> markdown content
+    full_markdown: str  # Complete PRD as single document
+    html_version: str  # Rendered HTML for sharing
+    metadata: Dict  # Author, date, status, etc.
+3.3 UI/UX Designer Agent
+File: backend/src/agents/ui_ux/agent.py
+Purpose: Staff Product Designer that creates complete design systems including wireframes, design tokens, and interactive prototypes.
+Class Definition:
+Python
+Copy
+class UIUXDesignerAgent:
+    """
+    Professional designer agent.
+    Capabilities: User flows, wireframes, design systems, prototypes.
+    """
+    
+    async def run(
+        self,
+        prd_data: Dict,  # From PRD Agent
+        research_data: Dict  # From Data Agent
+    ) -> DesignResult:
+        """
+        Generate complete design system.
+        
+        Deliverables:
+        1. User Flow Diagram (text-based)
+        2. Low-fi Wireframes (PIL images)
+        3. Design Tokens (W3C format)
+        4. Interactive Prototype (HTML/CSS/JS)
+        5. Design Specs (for engineers)
+        6. Accessibility Guidelines
+        """
+        pass
+    
+    async def generate_wireframes(
+        self,
+        screens: List[str],
+        solution_type: str
+    ) -> List[WireframeImage]:
+        """
+        Generate wireframe images using PIL/Pillow.
+        
+        Creates: signup, dashboard, task, success screens
+        Style: Clean, gray-scale, annotation-ready
+        """
+        # Use PIL to draw rectangles, text, buttons
+        # Save as PNG base64
+        pass
+    
+    async def generate_design_tokens(self) -> Dict:
+        """
+        Generate W3C Design Tokens format.
+        
+        Categories:
+        - colors (primary, secondary, semantic)
+        - typography (font families, sizes, weights)
+        - spacing (scale from 4px base)
+        - breakpoints (mobile, tablet, desktop)
+        """
+        return {
+            "color": {
+                "primary": {"value": "#007BFF", "type": "color"},
+                "success": {"value": "#28A745", "type": "color"}
+            },
+            "fontSize": {
+                "heading": {"value": "24px", "type": "fontSize"},
+                "body": {"value": "16px", "type": "fontSize"}
+            }
+        }
+    
+    async def generate_prototype(
+        self,
+        screens: List[Dict]
+    ) -> str:
+        """
+        Generate interactive HTML prototype.
+        
+        Features:
+        - Clickable navigation between screens
+        - Form inputs (non-functional)
+        - Transitions/animations
+        - Mobile-responsive (375px frame)
+        """
+        # Generate HTML with Tailwind CSS
+        # Include JavaScript for interactions
+        # Return complete HTML string
+        pass
+Output Format:
+Python
+Copy
+class DesignResult(BaseModel):
+    user_flow: str  # Mermaid diagram or text description
+    wireframes: List[WireframeImage]  # PNG base64 images
+    design_tokens: Dict  # W3C format
+    prototype_html: str  # Complete interactive prototype
+    specs: str  # Design specs document
+    accessibility_notes: str  # WCAG compliance notes
+4. API Layer Specifications
+4.1 FastAPI Application
+File: backend/src/api/main.py
+Structure:
+Python
+Copy
+from fastapi import FastAPI, Depends, WebSocket
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup and shutdown events"""
+    # Startup: init database, check AI models, connect Langfuse
+    await init_db()
+    await check_ai_health()
+    
+    yield
+    
+    # Shutdown: close connections, cleanup
+    await close_db()
+
+app = FastAPI(
+    title="Agentic Research AI",
+    lifespan=lifespan
+)
+
+# Include routers
+app.include_router(goals_router, prefix="/goals")
+app.include_router(agents_router, prefix="/agents")
+app.include_router(data_router, prefix="/data")
+app.include_router(websocket_router, prefix="/ws")
+4.2 Key Endpoints
+Table
+Copy
+Method	Path	Description	Request	Response
+POST	/goals	Create new research goal	{description, mode}	ResearchGoal
+GET	/goals/{id}	Get goal status and results	-	ResearchGoal
+POST	/goals/{id}/run	Start agent execution	{agent_type}	AgentState
+GET	/goals/{id}/checkpoint	Get current checkpoint	-	Checkpoint
+POST	/goals/{id}/checkpoint	Resolve checkpoint	{choice, feedback}	-
+POST	/data/upload	Upload CSV/Excel	File upload	DataFrame
+GET	/data/kaggle/search	Search Kaggle	q={query}	List of datasets
+POST	/data/kaggle/download	Download Kaggle dataset	{dataset_ref}	DataFrame
+WebSocket	/ws/{goal_id}	Real-time updates	-	Stream of events
+4.3 WebSocket Protocol
+Connection:
+plain
+Copy
+Client connects to: ws://api/ws/{goal_id}
+Server authenticates (if auth enabled)
+Server streams events as JSON
+Event Types:
+Python
+Copy
+class AgentEvent(BaseModel):
+    type: str  # "status", "checkpoint", "complete", "error"
+    timestamp: datetime
+    data: Dict
+    
+# Status event
+{
+    "type": "status",
+    "timestamp": "2024-01-15T10:30:00Z",
+    "data": {
+        "agent_type": "data",
+        "status": "acting",
+        "current_action": "Fetching Kaggle dataset",
+        "progress_percent": 45
+    }
+}
+
+# Checkpoint event
+{
+    "type": "checkpoint",
+    "timestamp": "2024-01-15T10:35:00Z",
+    "data": {
+        "checkpoint_id": "cp_123",
+        "title": "Validate Hypothesis",
+        "description": "Data suggests 60% drop-off at checkout",
+        "options": [
+            {"id": "proceed", "label": "Proceed to solution design"},
+            {"id": "more_data", "label": "Gather more data"}
+        ]
+    }
+}
+5. Testing Specifications
+5.1 Test Structure
+plain
+Copy
+backend/tests/
+├── unit/
+│   ├── test_config.py
+│   ├── test_database.py
+│   ├── test_ai_manager.py
+│   ├── test_data_agent.py
+│   ├── test_prd_agent.py
+│   └── test_ui_ux_agent.py
+├── integration/
+│   ├── test_api.py
+│   ├── test_agents_flow.py
+│   └── test_data_sources.py
+└── e2e/
+    └── test_full_workflow.py
+5.2 Key Test Patterns
+Unit Test with Dependency Override:
+Python
+Copy
+@pytest.fixture
+async def test_db():
+    """Create test database"""
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield engine
+    await engine.dispose()
+
+@pytest.fixture
+async def client(test_db):
+    """FastAPI test client with overridden dependencies"""
+    async def override_get_session():
+        async with AsyncSession(test_db) as session:
+            yield session
+    
+    app.dependency_overrides[get_session] = override_get_session
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        yield ac
+
+async def test_data_agent_demo_mode(client):
+    """Test Data Agent in demo mode"""
+    # Create goal in demo mode
+    response = await client.post("/goals", json={
+        "description": "Analyze user drop-off",
+        "mode": "demo"
+    })
+    goal_id = response.json()["id"]
+    
+    # Run data agent
+    response = await client.post(f"/goals/{goal_id}/run", json={
+        "agent_type": "data"
+    })
+    assert response.status_code == 200
+    
+    # Check result
+    result = response.json()
+    assert result["status"] == "complete"
+    assert result["findings"] is not None
+    assert result["confidence"] > 0
+Integration Test with Mock AI:
+Python
+Copy
+@pytest.fixture
+def mock_ai_manager(monkeypatch):
+    """Mock AI responses for predictable tests"""
+    async def mock_generate(*args, **kwargs):
+        return GenerationResult(
+            success=True,
+            content='{"hypothesis": "Test hypothesis", "confidence": 0.9}',
+            model="mock",
+            provider="test"
+        )
+    
+    monkeypatch.setattr(
+        "backend.src.ai.manager.OllamaClient.generate",
+        mock_generate
+    )
+6. Frontend Specifications (Phase 2)
+6.1 Technology Stack
+Framework: Next.js 14 (App Router)
+Styling: Tailwind CSS + Radix UI primitives
+State: React Query (server state) + Zustand (client state)
+Streaming: Vercel AI SDK useChat hook
+Motion: Framer Motion for transitions
+Theme: Dark-first, Linear precision + Claude warmth
+6.2 Key Pages
+Table
+Copy
+Route	Purpose	Key Features
+/	Mode selection	Real vs Demo toggle, explanation
+/goals/new	Create goal	Natural language input, mode indicator
+/goals/{id}	Dashboard	Real-time status, agent cards, progress
+/goals/{id}/checkpoint	Human approval	Options, recommendation, feedback
+/goals/{id}/results	Final output	PRD viewer, design system, download
+6.3 Component Hierarchy
+plain
+Copy
+app/
+├── layout.tsx              # Root layout, providers
+├── page.tsx                # Mode selection
+├── goals/
+│   ├── new/
+│   │   └── page.tsx        # Goal creation form
+│   └── [id]/
+│       ├── page.tsx        # Dashboard (server component)
+│       ├── layout.tsx      # Goal layout with WebSocket
+│       ├── checkpoint/
+│       │   └── page.tsx    # Checkpoint resolution
+│       └── results/
+│           └── page.tsx    # Results display
+components/
+├── ui/                     # Radix primitives
+│   ├── button.tsx
+│   ├── card.tsx
+│   ├── dialog.tsx
+│   └── ...
+├── agents/
+│   ├── AgentCard.tsx       # Status card per agent
+│   ├── AgentLog.tsx        # Real-time log stream
+│   └── AgentProgress.tsx   # Progress bar
+├── dashboard/
+│   ├── ModeSelector.tsx    # Real/Demo toggle
+│   ├── GoalInput.tsx       # Natural language input
+│   └── ResultsViewer.tsx   # PRD/Design display
+└── providers/
+    ├── WebSocketProvider.tsx  # Real-time connection
+    └── ThemeProvider.tsx      # Dark mode
+7. Deployment Specifications
+7.1 Docker Configuration
+Backend Dockerfile:
+dockerfile
+Copy
+# Multi-stage build for production
+FROM python:3.11-slim as builder
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --user --no-cache-dir -r requirements.txt
+
+FROM python:3.11-slim
+
+# Copy dependencies from builder
+COPY --from=builder /root/.local /root/.local
+ENV PATH=/root/.local/bin:$PATH
+
+WORKDIR /app
+COPY backend/ ./backend/
+
+CMD ["uvicorn", "backend.src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+7.2 Environment Variables
+bash
+Copy
+# Required
+APP_MODE=demo  # or "real"
+DATABASE_URL=sqlite+aiosqlite:///./data/demo.db
+
+# Ollama (local)
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.1:8b
+
+# Optional (real mode)
+KAGGLE_USERNAME=your_username
+KAGGLE_KEY=your_key
+LANGFUSE_PUBLIC_KEY=pk_...
+LANGFUSE_SECRET_KEY=sk_...
+Summary
+This specification provides complete technical details for building Agentic Research AI:
+Table
+Copy
+Component	Files	Key Technologies
+Core	3	Pydantic v2, SQLAlchemy 2.0, Structlog
+AI	2	Ollama, Langfuse, fallback chain
+Agents	3	Data, PRD, UI/UX with ReAct loop
+API	4	FastAPI, WebSocket, dependency injection
+Tests	10+	pytest, async fixtures, mock AI
+Frontend	15+	Next.js 14, Tailwind, Framer Motion
+Total: ~50 files, ~5000 lines of code
+This is what you need to build. Not in one session, but as proper software engineering project.

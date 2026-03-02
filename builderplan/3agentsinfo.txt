@@ -1,0 +1,2966 @@
+give all 3 agents not just genric data analysis but the advance one we selected in deepth and have every minute details give all 3 agents working fuctionality and how user use each and there deliverables full in details give it to me
+Edit
+Copy
+Share
+I understand. You want the complete detailed specifications for all 3 agents with every minute detail, functionality, user interaction, and deliverables.
+Let me create this comprehensive document:
+COMPLETE AGENT SPECIFICATIONS
+Agentic Research AI - Deep Technical Documentation
+TABLE OF CONTENTS
+Data Agent (Deep Specification)
+PRD Agent (Deep Specification)
+UI/UX Designer Agent (Deep Specification)
+User Interaction Flows
+Deliverables Matrix
+Integration Points
+1. DATA AGENT - DEEP SPECIFICATION
+1.1 Agent Identity
+Name: Data Research Analyst
+Role: Senior Data Scientist / Research Analyst
+Personality: Precise, skeptical, evidence-driven, transparent about uncertainty
+Voice: Professional, technical but accessible, cites numbers, acknowledges limitations
+1.2 Core Philosophy
+The Data Agent doesn't just "analyze data"—it conducts scientific research:
+Hypothesis-driven: Starts with questions, not just exploratory
+Multi-source validation: Never trusts single data source
+Uncertainty quantification: Confidence scores, not binary conclusions
+Reproducible: Documents methodology for peer review
+Actionable: Insights lead to decisions, not just interesting facts
+1.3 Capabilities Deep Dive
+Capability 1: Kaggle Integration
+What it does:
+Searches Kaggle datasets using natural language
+Downloads and caches datasets locally
+Automatically infers schema and data types
+Profiles data (distributions, missing values, correlations)
+Generates data dictionary
+Technical Implementation:
+Python
+Copy
+class KaggleConnector:
+    """
+    Production-grade Kaggle integration with caching,
+    retry logic, and graceful degradation.
+    """
+    
+    async def search(
+        self,
+        query: str,
+        min_size_mb: Optional[float] = None,
+        max_size_mb: Optional[float] = 100.0,
+        file_types: List[str] = ["csv", "parquet", "json"],
+        min_votes: int = 10,
+        max_results: int = 10
+    ) -> List[KaggleDataset]:
+        """
+        Search Kaggle with intelligent ranking.
+        
+        Ranking factors:
+        1. Relevance to query (title/description match)
+        2. Usability score (Kaggle's metric)
+        3. Vote count (popularity)
+        4. Recency (prefer newer datasets)
+        5. Size (prefer manageable sizes)
+        """
+        
+    async def download(
+        self,
+        dataset_ref: str,  # "username/dataset-name"
+        version: Optional[str] = None,
+        force_refresh: bool = False,
+        cache_dir: str = "~/.cache/agentic-research/kaggle"
+    ) -> DownloadedDataset:
+        """
+        Download with intelligent caching.
+        
+        Cache strategy:
+        - Check local cache first (MD5 hash verification)
+        - If stale (>7 days) or force_refresh: re-download
+        - If download fails: use cached version with warning
+        - If no cache and download fails: raise error with alternatives
+        
+        Returns:
+        - Local file path
+        - Schema inference
+        - Data profile (rows, columns, memory usage)
+        - Sample data (first 100 rows)
+        """
+        
+    async def profile(
+        self,
+        dataset: DownloadedDataset
+    ) -> DataProfile:
+        """
+        Generate comprehensive data profile.
+        
+        Includes:
+        - Column types (inferred and explicit)
+        - Missing value percentages
+        - Distributions (numeric: histogram, categorical: frequencies)
+        - Correlation matrix (numeric columns)
+        - Unique counts
+        - Potential quality issues (outliers, inconsistent formatting)
+        """
+User Interaction:
+plain
+Copy
+User: "Find ecommerce datasets about user behavior"
+
+Agent: 🔍 Searching Kaggle for relevant datasets...
+
+Found 5 datasets:
+
+1. "E-commerce Behavior Data" by user123 ⭐ 245 votes
+   📊 5M rows, 12 columns, 2.3 GB
+   📝 Contains: user_id, session_id, event_type, timestamp, product_id, price
+   ✅ Usability: 8.5/10
+   🎯 Relevance: 95% match
+
+2. "Online Retail Dataset" by UCI ⭐ 189 votes
+   📊 541K rows, 8 columns, 45 MB
+   📝 Contains: InvoiceNo, StockCode, Description, Quantity, InvoiceDate, Price, CustomerID, Country
+   ✅ Usability: 9.2/10
+   🎯 Relevance: 78% match
+
+[Download dataset 1?] [Download dataset 2?] [Search again?]
+Capability 2: GA4 BigQuery Public Data
+What it does:
+Queries Google Analytics 4 public ecommerce dataset
+Builds funnels, segments, cohorts
+Calculates conversion rates, retention, LTV
+Identifies behavioral patterns
+Technical Implementation:
+Python
+Copy
+class GA4BigQueryConnector:
+    """
+    Production BigQuery integration with query optimization,
+    cost control, and result caching.
+    """
+    
+    async def query_funnel(
+        self,
+        steps: List[str],  # ["session_start", "add_to_cart", "begin_checkout", "purchase"]
+        date_range: Tuple[datetime, datetime],
+        segment_by: Optional[List[str]] = None,  # ["device_category", "country", "traffic_source"]
+        filters: Optional[Dict] = None  # {"country": "United States", "device": "mobile"}
+    ) -> FunnelResult:
+        """
+        Build multi-step funnel analysis.
+        
+        SQL Generation:
+        - WITH clause for each step
+        - LEFT JOINs to track drop-off
+        - Window functions for time-between-steps
+        - GROUP BY for segmentation
+        
+        Cost Control:
+        - Estimate bytes before query (BigQuery API)
+        - If > 100MB: warn user, request confirmation
+        - Cache results for 24 hours
+        
+        Returns:
+        - Step-by-step conversion rates
+        - Drop-off points with counts
+        - Time-to-convert distributions
+        - Segment breakdowns
+        """
+        
+    async def query_cohort(
+        self,
+        cohort_definition: str,  # "first_visit_date"
+        metric: str,  # "retention", "revenue", "engagement"
+        periods: int = 12,  # weeks
+        date_range: Tuple[datetime, datetime]
+    ) -> CohortResult:
+        """
+        Cohort retention/revenue analysis.
+        
+        Returns:
+        - Cohort matrix (rows: cohorts, columns: periods)
+        - Retention curves
+        - LTV projections
+        """
+        
+    async def query_user_journey(
+        self,
+        event_sequence: List[str],
+        max_depth: int = 5,
+        min_users: int = 100
+    ) -> JourneyResult:
+        """
+        Path analysis - what do users do after event X?
+        
+        Returns:
+        - Sankey diagram data (source, target, value)
+        - Most common paths
+        - Anomalous paths (high drop-off or conversion)
+        """
+User Interaction:
+plain
+Copy
+User: "Analyze checkout funnel for mobile users in US"
+
+Agent: 📊 Querying GA4 public dataset...
+
+Funnel Analysis: Mobile US Users (Last 30 Days)
+═══════════════════════════════════════════════════
+
+Step 1: Session Start    │ 100,000 users │ 100%
+Step 2: View Product     │  45,000 users │  45% │ ▼ 55% drop
+Step 3: Add to Cart      │  12,000 users │  12% │ ▼ 73% drop ⚠️ CRITICAL
+Step 4: Begin Checkout   │   8,000 users │   8% │ ▼ 33% drop
+Step 5: Purchase         │   4,800 users │   4.8% │ ▼ 40% drop
+
+🔍 Key Insights:
+• Biggest drop: View Product → Add to Cart (73%)
+• Mobile conversion: 4.8% (vs 8.2% desktop)
+• Avg time to purchase: 2.3 days
+
+📍 Segment Breakdown:
+• iOS: 5.2% conversion
+• Android: 4.4% conversion
+
+[Deep dive: Add to Cart drop-off?] [Compare with desktop?] [Export data?]
+Capability 3: User File Upload
+What it does:
+Accepts CSV, Excel, JSON, Parquet
+Automatic schema detection
+Data cleaning suggestions
+Privacy analysis (PII detection)
+Technical Implementation:
+Python
+Copy
+class UploadConnector:
+    """
+    Secure file upload with validation, scanning,
+    and intelligent processing.
+    """
+    
+    async def process_upload(
+        self,
+        file: UploadFile,
+        max_size_mb: float = 10.0,
+        allowed_types: List[str] = ["csv", "xlsx", "json", "parquet"]
+    ) -> ProcessedData:
+        """
+        Process uploaded file with security checks.
+        
+        Security:
+        - File type validation (magic numbers, not just extension)
+        - Size limits
+        - Virus scan (if ClamAV available)
+        - PII detection (presidio or regex patterns)
+        
+        Processing:
+        - Schema inference
+        - Type coercion
+        - Missing value analysis
+        - Duplicate detection
+        - Anomaly flagging
+        
+        Privacy:
+        - If PII detected: warn user, suggest anonymization
+        - Store with encryption at rest
+        - Auto-delete after 30 days (configurable)
+        """
+        
+    async def clean_data(
+        self,
+        data: pd.DataFrame,
+        operations: List[CleanOperation]
+    ) -> CleanedData:
+        """
+        Automated data cleaning with user approval.
+        
+        Operations:
+        - Handle missing (drop, fill, interpolate)
+        - Remove duplicates
+        - Fix types
+        - Standardize formats (dates, currencies)
+        - Remove outliers (IQR method)
+        - Normalize text (lowercase, strip whitespace)
+        
+        Each operation logged with before/after stats.
+        """
+User Interaction:
+plain
+Copy
+User: [Uploads: sales_data_q4.xlsx, 5.2 MB]
+
+Agent: 📁 Processing upload...
+
+✅ File validated: Excel format, no security issues
+⚠️  Privacy check: Potential PII detected (email column: "user_email")
+✅ Schema inferred: 12 columns, 50,000 rows
+
+Data Profile:
+═══════════════
+
+Columns:
+• order_id (int) │ 0% missing │ Unique: 50000
+• user_email (string) │ 0% missing │ ⚠️ PII detected
+• order_date (datetime) │ 2% missing │ Range: 2023-10-01 to 2023-12-31
+• amount (float) │ 0% missing │ Range: $10.00 - $5,000.00 │ Mean: $145.50
+• status (string) │ 0% missing │ Values: completed (85%), refunded (10%), pending (5%)
+
+🔧 Suggested Cleaning:
+1. Remove or hash user_email column (privacy)
+2. Fill 1,000 missing order_date with mode (2023-11-15)
+3. Convert amount to standardized currency format
+
+[Apply all suggestions?] [Review each?] [Proceed without cleaning?]
+Capability 4: LLM Demo Data Generation
+What it does:
+Generates realistic synthetic data when real sources unavailable
+Matches statistical properties of real-world data
+Includes realistic correlations, seasonality, outliers
+Documents generation methodology
+Technical Implementation:
+Python
+Copy
+class DemoDataGenerator:
+    """
+    Production-grade synthetic data generation with
+    statistical realism and full documentation.
+    """
+    
+    async def generate(
+        self,
+        specification: DataSpecification,
+        n_samples: int = 10000,
+        random_seed: Optional[int] = None,
+        realism_level: Literal["low", "medium", "high"] = "high"
+    ) -> GeneratedDataset:
+        """
+        Generate realistic synthetic data.
+        
+        Process:
+        1. Parse specification (schema, distributions, relationships)
+        2. Generate base distributions (normal, exponential, categorical)
+        3. Add correlations (Cholesky decomposition for multivariate)
+        4. Add seasonality (if time-based)
+        5. Add outliers (realistic anomalies)
+        6. Add missing values (realistic patterns, not random)
+        7. Validate against specification
+        
+        Documentation:
+        - Generation parameters
+        - Statistical properties (mean, std, correlations)
+        - Known limitations
+        - Comparison to real data (if available)
+        """
+        
+    async def generate_from_description(
+        self,
+        natural_language_description: str
+    ) -> GeneratedDataset:
+        """
+        Generate based on natural language.
+        
+        Example: "Ecommerce data with 10k users, 20% monthly churn,
+        average order $150, weekend spike in traffic"
+        
+        LLM parses → structured spec → generate
+        """
+User Interaction:
+plain
+Copy
+User: "Generate demo data for a SaaS product with user behavior"
+
+Agent: 🎲 Generating realistic demo data...
+
+Specification parsed:
+• 10,000 users
+• 6-month timeframe
+• User events: signup, activation, engagement, upgrade, churn
+• Realistic patterns: 30% activation, 5% monthly churn, weekend dips
+
+Generating with seed 42 (reproducible)...
+
+✅ Generated: 10,000 users, 150,000 events
+
+Statistical Properties:
+═══════════════════════
+• Signup distribution: Uniform over 6 months
+• Activation rate: 31.2% (close to target 30%)
+• Time-to-activate: Lognormal, mean 2.3 days
+• Churn pattern: Exponential decay, 4.8% monthly
+• Revenue: Pareto distribution (80/20 rule observed)
+
+Correlations (as requested):
+• Engagement score ↔ Upgrade likelihood: 0.72
+• Onboarding time ↔ Churn risk: 0.58
+
+📋 Methodology documented for peer review.
+
+[Use this data?] [Adjust parameters?] [Export to CSV?]
+1.4 ReAct Loop Implementation
+Phase 1: THINK (Analyze Goal)
+plain
+Copy
+Input: "Why do users abandon at checkout?"
+
+Internal Monologue:
+┌─────────────────────────────────────────────────────────┐
+│ THINKING...                                              │
+│                                                          │
+│ 1. Parse user intent:                                    │
+│    - Core question: Checkout abandonment reasons        │
+│    - Implicit need: Actionable solutions                │
+│    - Success metric: Conversion rate improvement        │
+│                                                          │
+│ 2. Identify data needs:                                  │
+│    - Funnel analysis: where exactly do they drop off?   │
+│    - User segments: mobile vs desktop, new vs returning │
+│    - Behavioral patterns: time on page, error rates     │
+│    - Qualitative: if available, user feedback           │
+│                                                          │
+│ 3. Determine strategy:                                   │
+│    - Mode: Check if real data sources available         │
+│    - If real: Kaggle (ecommerce) + GA4 (funnel)         │
+│    - If demo: Generate realistic checkout flow data     │
+│    - Analysis: Funnel visualization, drop-off points,   │
+│      correlation with user attributes                   │
+│                                                          │
+│ 4. Form initial hypotheses (to test):                   │
+│    - H1: Unexpected shipping costs                      │
+│    - H2: Forced account creation                        │
+│    - H3: Payment method issues                          │
+│    - H4: Mobile UX problems                             │
+└─────────────────────────────────────────────────────────┘
+Phase 2: ACT (Fetch Data)
+plain
+Copy
+Actions taken:
+├─ Check mode: "demo" (no API keys configured)
+├─ Generate demo data specification
+│  └─ LLM call: "Generate checkout flow data with 20% abandonment"
+│     └─ Result: Dataset specification with realistic patterns
+├─ Execute generation
+│  └─ 10,000 sessions, 2,000 abandonments at various stages
+└─ Validate data quality
+   └─ Check: Reasonable distributions? Yes.
+   └─ Check: Expected correlations present? Yes.
+Phase 3: OBSERVE (Analyze)
+plain
+Copy
+Analysis performed:
+├─ Funnel calculation
+│  └─ Step 1 (View cart): 10,000 (100%)
+│  └─ Step 2 (Shipping info): 8,500 (85%)
+│  └─ Step 3 (Payment): 6,000 (60%) ← 25% drop ⚠️
+│  └─ Step 4 (Confirm): 5,000 (50%)
+│  └─ Step 5 (Success): 4,800 (48%)
+│
+├─ Segment analysis
+│  └─ Mobile: 35% abandonment (vs 15% desktop) ⚠️
+│  └─ New users: 45% abandonment (vs 20% returning)
+│
+├─ Correlation analysis
+│  └─ Abandonment ↔ Shipping cost surprise: 0.78
+│  └─ Abandonment ↔ Mobile device: 0.65
+│  └─ Abandonment ↔ Forced signup: 0.42
+│
+└─ Pattern detection
+   └─ Weekend abandonment 15% higher
+   └─ Peak drop-off: Shipping info page (25%)
+Phase 4: LEARN (Synthesize)
+plain
+Copy
+Hypothesis formation:
+┌─────────────────────────────────────────────────────────┐
+│ FINDINGS:                                                │
+│                                                          │
+│ Primary Issue: Mobile checkout UX                         │
+│ Confidence: 85%                                          │
+│                                                          │
+│ Supporting Evidence:                                     │
+│ 1. Mobile abandonment 2.3x desktop (35% vs 15%)        │
+│ 2. Biggest drop at shipping info (25%)                  │
+│ 3. Strong correlation with form complexity              │
+│                                                          │
+│ Root Cause Hypothesis:                                   │
+│ Mobile forms are too complex, shipping costs not         │
+│ transparent early enough, forced account creation         │
+│ adds friction.                                           │
+│                                                          │
+│ Recommended Validation:                                  │
+│ - User interviews on mobile checkout experience         │
+│ - A/B test: guest checkout vs forced signup             │
+│ - Heatmap analysis of shipping info page                │
+│                                                          │
+│ Next Agent: PRD Agent (solution design)                 │
+└─────────────────────────────────────────────────────────┘
+1.5 Deliverables
+Primary Deliverable: DataResearchReport
+Python
+Copy
+class DataResearchReport:
+    """Complete output from Data Agent"""
+    
+    # Core findings
+    hypothesis: str                    # Primary conclusion
+    confidence_score: float            # 0.0-1.0
+    confidence_explanation: str        # Why this confidence level
+    
+    # Evidence
+    supporting_evidence: List[Evidence]  # Structured proof points
+    contradictory_evidence: List[Evidence]  # Acknowledged limitations
+    data_sources_used: List[DataSource]  # Provenance
+    
+    # Analysis artifacts
+    raw_data: pd.DataFrame             # Full dataset
+    processed_data: pd.DataFrame       # Cleaned/analysis-ready
+    visualizations: List[Visualization]  # Charts, graphs
+    statistical_tests: List[StatTest]  # Significance tests
+    
+    # Methodology
+    analysis_methodology: str          # How conclusions were reached
+    limitations: str                   # What we don't know
+    reproducibility_notes: str         # How to replicate
+    
+    # Recommendations
+    recommended_next_steps: List[str]  # What to do next
+    suggested_validation_methods: List[str]  # How to confirm
+    estimated_impact: Optional[ImpactEstimate]  # If hypothesis true
+    
+    # Agent reasoning (curated)
+    agent_thinking_summary: str        # Key reasoning steps (not raw)
+Evidence Types
+Python
+Copy
+class Evidence:
+    type: Literal["statistical", "behavioral", "correlational", "qualitative"]
+    description: str
+    data_point: Union[float, int, str]
+    context: str                       # What this means
+    confidence: float                  # Reliability of this evidence
+    source: str                        # Where it came from
+
+# Examples:
+Evidence(
+    type="statistical",
+    description="Mobile abandonment rate",
+    data_point=0.35,  # 35%
+    context="2.3x higher than desktop (15%), indicating mobile-specific issues",
+    confidence=0.95,
+    source="GA4 BigQuery public dataset, n=10,000 sessions"
+)
+
+Evidence(
+    type="correlational",
+    description="Shipping cost surprise correlation",
+    data_point=0.78,  # Pearson r
+    context="Strong positive correlation suggests unexpected costs drive abandonment",
+    confidence=0.82,
+    source="Kaggle ecommerce behavior dataset"
+)
+Visualization Types
+Funnel Chart: Step-by-step conversion with drop-off rates
+Cohort Matrix: Retention/revenue over time
+Heatmap: User behavior on specific pages
+Correlation Matrix: Variable relationships
+Time Series: Trends over time
+Distribution Plot: Value distributions with outliers
+1.6 User Interaction Flow
+Scenario A: Real Mode with Kaggle
+plain
+Copy
+USER: "I need to understand why our mobile conversion is low"
+
+AGENT: I'll help you analyze mobile conversion issues. Let me search for relevant datasets and query analytics data.
+
+[THINKING... 3 seconds]
+
+🔍 Searching Kaggle for mobile ecommerce datasets...
+📊 Found 3 relevant datasets
+📈 Querying GA4 public data for mobile funnel analysis...
+
+[ACTING... 15 seconds]
+
+✅ Downloaded: "Mobile E-commerce Behavior" (2.3 GB, 5M rows)
+✅ Queried: GA4 mobile funnel (last 30 days, 100K sessions)
+
+[ANALYZING... 20 seconds]
+
+📊 Analysis complete. Here's what I found:
+
+═══════════════════════════════════════════════════
+MOBILE CONVERSION ANALYSIS
+═══════════════════════════════════════════════════
+
+Hypothesis: Mobile checkout UX friction reduces conversion by 40%
+
+Confidence: 87%
+
+Key Evidence:
+├─ Mobile abandonment: 35% (vs 15% desktop) [GA4 data]
+├─ Primary drop: Shipping info page (25% leave) [Kaggle behavioral data]
+├─ Correlation: Form fields ↔ Abandonment (r=0.72)
+└─ Segment: New mobile users 3x more likely to abandon
+
+Statistical Significance: p < 0.001 (highly significant)
+
+Data Sources:
+• Kaggle: Mobile E-commerce Behavior (5M sessions)
+• GA4 Public: Funnel analysis (100K mobile sessions)
+
+Limitations:
+• No access to your specific user feedback
+• Seasonal effects not fully controlled
+• iOS/Android breakdown limited in public data
+
+Recommended Next Steps:
+1. User interviews: Mobile checkout experience (validate hypothesis)
+2. A/B test: Simplified mobile form vs current
+3. Heatmap analysis: Shipping info page behavior
+
+[Proceed to solution design?] [Gather more data?] [Export full report?]
+Scenario B: Demo Mode
+plain
+Copy
+USER: "I want to test this system. Generate demo data for a SaaS product."
+
+AGENT: I'll generate realistic demo data for SaaS user behavior analysis.
+
+[THINKING... 2 seconds]
+
+🎲 Generating synthetic SaaS dataset...
+
+Parameters:
+• 10,000 users
+• 6-month timeline
+• Events: signup → activation → engagement → upgrade/churn
+• Realistic patterns: 30% activation, 5% monthly churn
+
+[GENERATING... 10 seconds]
+
+✅ Generated: 10,000 users, 150,000 events
+
+Statistical Validation:
+├─ Activation rate: 31.2% (target: 30%) ✓
+├─ Churn pattern: Exponential decay ✓
+├─ Revenue distribution: Pareto (80/20) ✓
+└─ Seasonality: Weekend dips observed ✓
+
+[ANALYZING... 15 seconds]
+
+📊 Demo Analysis Results:
+
+═══════════════════════════════════════════════════
+SAAS USER BEHAVIOR ANALYSIS (DEMO DATA)
+═══════════════════════════════════════════════════
+
+⚠️  DEMO MODE: This is synthetic data for testing purposes
+
+Hypothesis: Onboarding complexity prevents 40% of signups from activating
+
+Confidence: 82% (simulated)
+
+Key Findings:
+├─ Activation rate: 31% (industry avg: 40%)
+├─ Biggest drop: Step 3 of 5 (API integration)
+├─ Time-to-activate: 2.3 days (long)
+└─ Correlation: Onboarding time ↔ Churn (r=0.68)
+
+Recommended Actions:
+1. Simplify Step 3 (provide templates)
+2. Add progress indicator (reduce anxiety)
+3. Offer onboarding call for stuck users
+
+[Proceed with PRD?] [Adjust demo parameters?] [Export dataset?]
+2. PRD AGENT - DEEP SPECIFICATION
+2.1 Agent Identity
+Name: Principal Product Manager
+Role: Senior PM at top-tier tech company (FAANG level)
+Personality: Strategic, user-obsessed, data-informed, execution-focused
+Voice: Clear, structured, actionable, business-impact oriented
+2.2 Core Philosophy
+The PRD Agent doesn't just "write documents"—it drives product decisions:
+Problem-first: Deep understanding before solution
+User-obsessed: Every feature tied to user value
+Data-informed: Uses Data Agent findings, not gut feeling
+Business-aware: Revenue, retention, competitive positioning
+Execution-ready: Engineers can build from this doc
+2.3 Capabilities Deep Dive
+Capability 1: Research Synthesis
+What it does:
+Reads Data Agent findings (hypothesis, evidence, confidence)
+Identifies gaps in understanding
+Cross-references with industry benchmarks
+Formulates strategic framing
+Technical Implementation:
+Python
+Copy
+class ResearchSynthesizer:
+    """
+    Transforms raw data into strategic insights.
+    """
+    
+    async def synthesize(
+        self,
+        data_report: DataResearchReport,
+        original_goal: str,
+        industry_context: Optional[IndustryContext] = None
+    ) -> SynthesisResult:
+        """
+        Synthesize research into strategic foundation.
+        
+        Process:
+        1. Extract core problem from data
+        2. Identify user pain points (with quotes/behavioral evidence)
+        3. Quantify business impact (revenue, retention, growth)
+        4. Benchmark against industry standards
+        5. Identify strategic opportunities
+        
+        Output:
+        - Problem statement (1 paragraph)
+        - User pain points (3-5 bullets with evidence)
+        - Business impact calculation
+        - Strategic framing (why this matters now)
+        """
+        
+    async def identify_gaps(
+        self,
+        data_report: DataResearchReport
+    ) -> List[ResearchGap]:
+        """
+        Identify what we still don't know.
+        
+        Examples:
+        - "No qualitative data on user emotions"
+        - "Missing competitive analysis"
+        - "Unclear technical constraints"
+        
+        Each gap includes: severity, suggested research method
+        """
+User Interaction:
+plain
+Copy
+AGENT INTERNAL: Research Synthesis
+═══════════════════════════════════
+
+Input: Data Agent report on mobile checkout abandonment
+
+Analysis:
+├─ Core problem: 35% mobile abandonment, 2.3x desktop
+├─ Key insight: Shipping info page is primary drop-off (25%)
+├─ User segment: New mobile users most affected
+└─ Business impact: $45K/month revenue loss (estimated)
+
+Strategic Framing:
+This is not just a "mobile optimization"—it's a first impression
+problem. New users on mobile are 3x more likely to abandon,
+suggesting our onboarding trust-building is broken.
+
+Industry Benchmark:
+• Top quartile mobile conversion: 8-12%
+• Our mobile conversion: 4.8%
+• Gap: 3-7 percentage points = $200K-500K annual revenue
+
+Gaps Identified:
+⚠️  No qualitative data (user interviews needed)
+⚠️  No competitive UX analysis
+⚠️  Technical constraints unknown (payment provider limitations?)
+Capability 2: PRD Section Generation
+The PRD Agent generates 8 distinct sections, each with specific purpose and format.
+Section 1: Executive Summary
+Purpose: One-page overview for busy executives
+Audience: C-level, VP Product, senior stakeholders
+Length: 200-300 words
+Format: 4 paragraphs
+Structure:
+markdown
+Copy
+1. The Problem (1 sentence)
+   "Mobile checkout abandonment is costing us $45K/month 
+   and hurting new user acquisition."
+
+2. The Insight (1-2 sentences)
+   "Data shows 35% of mobile users abandon at shipping info, 
+   2.3x desktop rate. Root cause: unexpected costs + complex forms."
+
+3. The Solution (2-3 sentences)
+   "Redesign mobile checkout with transparent pricing early, 
+  
+
+
+I can see one memory entry from our previous conversation. Here's what I have from your last session:
+Your Previous Session Context:
+You wanted to build a complete production-grade Agentic Research AI system in phases. Specifically:
+Phase 1 Requirements:
+Core backend with 3 specialized agents:
+Data Agent
+PRD Agent
+UI/UX Designer Agent
+Dual Mode support: Real mode + Demo mode
+Local LLM: Ollama with llama3.1:8b
+Observability: Langfuse tracing
+Database: SQLite (local) / Supabase (cloud)
+Data Connectors: Kaggle + Google Analytics 4 (GA4)
+Frontend: Next.js with professional, non-generic UI
+Testing: Full test coverage, no shortcuts
+Your Available Models:
+llama3.1:8b
+llava:7b
+qwen2.5-coder:7b
+deepseek-r1:8b
+You mentioned this would be built across multiple sessions and wanted a professional, polished implementation rather than generic boilerplate.
+Is this the context you were referring to? If there's something specific from that conversation you want to continue with or if you need me to search for additional details, let me know!
+yes in last i have give a very cursial task analysis the my full last conversation and last sesstion last 12 message and conversation  then complete the very last task i have given from where if went off
+Edit
+Copy
+Share
+I need to clarify something important: I don't have access to the full conversation history or the last 12 messages from our previous session.
+What I have access to:
+Only the single memory entry I showed you above, which captures the high-level goal (building the Agentic Research AI system)
+What I don't have:
+The detailed back-and-forth conversation
+The specific task you mentioned at the very end
+Any of the last 12 messages you referenced
+The memory system only stores what was explicitly saved, not the full transcript of our conversation.
+To help you properly, could you:
+Remind me what the "very last task" was that you gave me before the session ended?
+Or - if you have the conversation saved somewhere (copy-pasted, screenshots, or in your browser history), you could share those last messages with me and I can analyze them and complete the task.
+Once you give me that context, I'll immediately pick up exactly where we left off and complete that crucial task for you.
+give all 3 agents not just genric data analysis but the advance one we selected in deepth and have every minute details give all 3 agents working fuctionality and how user use each and there deliverables full in details give it to me
+Edit
+Copy
+Share
+I understand. You want the complete detailed specifications for all 3 agents with every minute detail, functionality, user interaction, and deliverables.
+Let me create this comprehensive document:
+COMPLETE AGENT SPECIFICATIONS
+Agentic Research AI - Deep Technical Documentation
+TABLE OF CONTENTS
+Data Agent (Deep Specification)
+PRD Agent (Deep Specification)
+UI/UX Designer Agent (Deep Specification)
+User Interaction Flows
+Deliverables Matrix
+Integration Points
+1. DATA AGENT - DEEP SPECIFICATION
+1.1 Agent Identity
+Name: Data Research Analyst
+Role: Senior Data Scientist / Research Analyst
+Personality: Precise, skeptical, evidence-driven, transparent about uncertainty
+Voice: Professional, technical but accessible, cites numbers, acknowledges limitations
+1.2 Core Philosophy
+The Data Agent doesn't just "analyze data"—it conducts scientific research:
+Hypothesis-driven: Starts with questions, not just exploratory
+Multi-source validation: Never trusts single data source
+Uncertainty quantification: Confidence scores, not binary conclusions
+Reproducible: Documents methodology for peer review
+Actionable: Insights lead to decisions, not just interesting facts
+1.3 Capabilities Deep Dive
+Capability 1: Kaggle Integration
+What it does:
+Searches Kaggle datasets using natural language
+Downloads and caches datasets locally
+Automatically infers schema and data types
+Profiles data (distributions, missing values, correlations)
+Generates data dictionary
+Technical Implementation:
+Python
+Copy
+class KaggleConnector:
+    """
+    Production-grade Kaggle integration with caching,
+    retry logic, and graceful degradation.
+    """
+    
+    async def search(
+        self,
+        query: str,
+        min_size_mb: Optional[float] = None,
+        max_size_mb: Optional[float] = 100.0,
+        file_types: List[str] = ["csv", "parquet", "json"],
+        min_votes: int = 10,
+        max_results: int = 10
+    ) -> List[KaggleDataset]:
+        """
+        Search Kaggle with intelligent ranking.
+        
+        Ranking factors:
+        1. Relevance to query (title/description match)
+        2. Usability score (Kaggle's metric)
+        3. Vote count (popularity)
+        4. Recency (prefer newer datasets)
+        5. Size (prefer manageable sizes)
+        """
+        
+    async def download(
+        self,
+        dataset_ref: str,  # "username/dataset-name"
+        version: Optional[str] = None,
+        force_refresh: bool = False,
+        cache_dir: str = "~/.cache/agentic-research/kaggle"
+    ) -> DownloadedDataset:
+        """
+        Download with intelligent caching.
+        
+        Cache strategy:
+        - Check local cache first (MD5 hash verification)
+        - If stale (>7 days) or force_refresh: re-download
+        - If download fails: use cached version with warning
+        - If no cache and download fails: raise error with alternatives
+        
+        Returns:
+        - Local file path
+        - Schema inference
+        - Data profile (rows, columns, memory usage)
+        - Sample data (first 100 rows)
+        """
+        
+    async def profile(
+        self,
+        dataset: DownloadedDataset
+    ) -> DataProfile:
+        """
+        Generate comprehensive data profile.
+        
+        Includes:
+        - Column types (inferred and explicit)
+        - Missing value percentages
+        - Distributions (numeric: histogram, categorical: frequencies)
+        - Correlation matrix (numeric columns)
+        - Unique counts
+        - Potential quality issues (outliers, inconsistent formatting)
+        """
+User Interaction:
+plain
+Copy
+User: "Find ecommerce datasets about user behavior"
+
+Agent: 🔍 Searching Kaggle for relevant datasets...
+
+Found 5 datasets:
+
+1. "E-commerce Behavior Data" by user123 ⭐ 245 votes
+   📊 5M rows, 12 columns, 2.3 GB
+   📝 Contains: user_id, session_id, event_type, timestamp, product_id, price
+   ✅ Usability: 8.5/10
+   🎯 Relevance: 95% match
+
+2. "Online Retail Dataset" by UCI ⭐ 189 votes
+   📊 541K rows, 8 columns, 45 MB
+   📝 Contains: InvoiceNo, StockCode, Description, Quantity, InvoiceDate, Price, CustomerID, Country
+   ✅ Usability: 9.2/10
+   🎯 Relevance: 78% match
+
+[Download dataset 1?] [Download dataset 2?] [Search again?]
+Capability 2: GA4 BigQuery Public Data
+What it does:
+Queries Google Analytics 4 public ecommerce dataset
+Builds funnels, segments, cohorts
+Calculates conversion rates, retention, LTV
+Identifies behavioral patterns
+Technical Implementation:
+Python
+Copy
+class GA4BigQueryConnector:
+    """
+    Production BigQuery integration with query optimization,
+    cost control, and result caching.
+    """
+    
+    async def query_funnel(
+        self,
+        steps: List[str],  # ["session_start", "add_to_cart", "begin_checkout", "purchase"]
+        date_range: Tuple[datetime, datetime],
+        segment_by: Optional[List[str]] = None,  # ["device_category", "country", "traffic_source"]
+        filters: Optional[Dict] = None  # {"country": "United States", "device": "mobile"}
+    ) -> FunnelResult:
+        """
+        Build multi-step funnel analysis.
+        
+        SQL Generation:
+        - WITH clause for each step
+        - LEFT JOINs to track drop-off
+        - Window functions for time-between-steps
+        - GROUP BY for segmentation
+        
+        Cost Control:
+        - Estimate bytes before query (BigQuery API)
+        - If > 100MB: warn user, request confirmation
+        - Cache results for 24 hours
+        
+        Returns:
+        - Step-by-step conversion rates
+        - Drop-off points with counts
+        - Time-to-convert distributions
+        - Segment breakdowns
+        """
+        
+    async def query_cohort(
+        self,
+        cohort_definition: str,  # "first_visit_date"
+        metric: str,  # "retention", "revenue", "engagement"
+        periods: int = 12,  # weeks
+        date_range: Tuple[datetime, datetime]
+    ) -> CohortResult:
+        """
+        Cohort retention/revenue analysis.
+        
+        Returns:
+        - Cohort matrix (rows: cohorts, columns: periods)
+        - Retention curves
+        - LTV projections
+        """
+        
+    async def query_user_journey(
+        self,
+        event_sequence: List[str],
+        max_depth: int = 5,
+        min_users: int = 100
+    ) -> JourneyResult:
+        """
+        Path analysis - what do users do after event X?
+        
+        Returns:
+        - Sankey diagram data (source, target, value)
+        - Most common paths
+        - Anomalous paths (high drop-off or conversion)
+        """
+User Interaction:
+plain
+Copy
+User: "Analyze checkout funnel for mobile users in US"
+
+Agent: 📊 Querying GA4 public dataset...
+
+Funnel Analysis: Mobile US Users (Last 30 Days)
+═══════════════════════════════════════════════════
+
+Step 1: Session Start    │ 100,000 users │ 100%
+Step 2: View Product     │  45,000 users │  45% │ ▼ 55% drop
+Step 3: Add to Cart      │  12,000 users │  12% │ ▼ 73% drop ⚠️ CRITICAL
+Step 4: Begin Checkout   │   8,000 users │   8% │ ▼ 33% drop
+Step 5: Purchase         │   4,800 users │   4.8% │ ▼ 40% drop
+
+🔍 Key Insights:
+• Biggest drop: View Product → Add to Cart (73%)
+• Mobile conversion: 4.8% (vs 8.2% desktop)
+• Avg time to purchase: 2.3 days
+
+📍 Segment Breakdown:
+• iOS: 5.2% conversion
+• Android: 4.4% conversion
+
+[Deep dive: Add to Cart drop-off?] [Compare with desktop?] [Export data?]
+Capability 3: User File Upload
+What it does:
+Accepts CSV, Excel, JSON, Parquet
+Automatic schema detection
+Data cleaning suggestions
+Privacy analysis (PII detection)
+Technical Implementation:
+Python
+Copy
+class UploadConnector:
+    """
+    Secure file upload with validation, scanning,
+    and intelligent processing.
+    """
+    
+    async def process_upload(
+        self,
+        file: UploadFile,
+        max_size_mb: float = 10.0,
+        allowed_types: List[str] = ["csv", "xlsx", "json", "parquet"]
+    ) -> ProcessedData:
+        """
+        Process uploaded file with security checks.
+        
+        Security:
+        - File type validation (magic numbers, not just extension)
+        - Size limits
+        - Virus scan (if ClamAV available)
+        - PII detection (presidio or regex patterns)
+        
+        Processing:
+        - Schema inference
+        - Type coercion
+        - Missing value analysis
+        - Duplicate detection
+        - Anomaly flagging
+        
+        Privacy:
+        - If PII detected: warn user, suggest anonymization
+        - Store with encryption at rest
+        - Auto-delete after 30 days (configurable)
+        """
+        
+    async def clean_data(
+        self,
+        data: pd.DataFrame,
+        operations: List[CleanOperation]
+    ) -> CleanedData:
+        """
+        Automated data cleaning with user approval.
+        
+        Operations:
+        - Handle missing (drop, fill, interpolate)
+        - Remove duplicates
+        - Fix types
+        - Standardize formats (dates, currencies)
+        - Remove outliers (IQR method)
+        - Normalize text (lowercase, strip whitespace)
+        
+        Each operation logged with before/after stats.
+        """
+User Interaction:
+plain
+Copy
+User: [Uploads: sales_data_q4.xlsx, 5.2 MB]
+
+Agent: 📁 Processing upload...
+
+✅ File validated: Excel format, no security issues
+⚠️  Privacy check: Potential PII detected (email column: "user_email")
+✅ Schema inferred: 12 columns, 50,000 rows
+
+Data Profile:
+═══════════════
+
+Columns:
+• order_id (int) │ 0% missing │ Unique: 50000
+• user_email (string) │ 0% missing │ ⚠️ PII detected
+• order_date (datetime) │ 2% missing │ Range: 2023-10-01 to 2023-12-31
+• amount (float) │ 0% missing │ Range: $10.00 - $5,000.00 │ Mean: $145.50
+• status (string) │ 0% missing │ Values: completed (85%), refunded (10%), pending (5%)
+
+🔧 Suggested Cleaning:
+1. Remove or hash user_email column (privacy)
+2. Fill 1,000 missing order_date with mode (2023-11-15)
+3. Convert amount to standardized currency format
+
+[Apply all suggestions?] [Review each?] [Proceed without cleaning?]
+Capability 4: LLM Demo Data Generation
+What it does:
+Generates realistic synthetic data when real sources unavailable
+Matches statistical properties of real-world data
+Includes realistic correlations, seasonality, outliers
+Documents generation methodology
+Technical Implementation:
+Python
+Copy
+class DemoDataGenerator:
+    """
+    Production-grade synthetic data generation with
+    statistical realism and full documentation.
+    """
+    
+    async def generate(
+        self,
+        specification: DataSpecification,
+        n_samples: int = 10000,
+        random_seed: Optional[int] = None,
+        realism_level: Literal["low", "medium", "high"] = "high"
+    ) -> GeneratedDataset:
+        """
+        Generate realistic synthetic data.
+        
+        Process:
+        1. Parse specification (schema, distributions, relationships)
+        2. Generate base distributions (normal, exponential, categorical)
+        3. Add correlations (Cholesky decomposition for multivariate)
+        4. Add seasonality (if time-based)
+        5. Add outliers (realistic anomalies)
+        6. Add missing values (realistic patterns, not random)
+        7. Validate against specification
+        
+        Documentation:
+        - Generation parameters
+        - Statistical properties (mean, std, correlations)
+        - Known limitations
+        - Comparison to real data (if available)
+        """
+        
+    async def generate_from_description(
+        self,
+        natural_language_description: str
+    ) -> GeneratedDataset:
+        """
+        Generate based on natural language.
+        
+        Example: "Ecommerce data with 10k users, 20% monthly churn,
+        average order $150, weekend spike in traffic"
+        
+        LLM parses → structured spec → generate
+        """
+User Interaction:
+plain
+Copy
+User: "Generate demo data for a SaaS product with user behavior"
+
+Agent: 🎲 Generating realistic demo data...
+
+Specification parsed:
+• 10,000 users
+• 6-month timeframe
+• User events: signup, activation, engagement, upgrade, churn
+• Realistic patterns: 30% activation, 5% monthly churn, weekend dips
+
+Generating with seed 42 (reproducible)...
+
+✅ Generated: 10,000 users, 150,000 events
+
+Statistical Properties:
+═══════════════════════
+• Signup distribution: Uniform over 6 months
+• Activation rate: 31.2% (close to target 30%)
+• Time-to-activate: Lognormal, mean 2.3 days
+• Churn pattern: Exponential decay, 4.8% monthly
+• Revenue: Pareto distribution (80/20 rule observed)
+
+Correlations (as requested):
+• Engagement score ↔ Upgrade likelihood: 0.72
+• Onboarding time ↔ Churn risk: 0.58
+
+📋 Methodology documented for peer review.
+
+[Use this data?] [Adjust parameters?] [Export to CSV?]
+1.4 ReAct Loop Implementation
+Phase 1: THINK (Analyze Goal)
+plain
+Copy
+Input: "Why do users abandon at checkout?"
+
+Internal Monologue:
+┌─────────────────────────────────────────────────────────┐
+│ THINKING...                                              │
+│                                                          │
+│ 1. Parse user intent:                                    │
+│    - Core question: Checkout abandonment reasons        │
+│    - Implicit need: Actionable solutions                │
+│    - Success metric: Conversion rate improvement        │
+│                                                          │
+│ 2. Identify data needs:                                  │
+│    - Funnel analysis: where exactly do they drop off?   │
+│    - User segments: mobile vs desktop, new vs returning │
+│    - Behavioral patterns: time on page, error rates     │
+│    - Qualitative: if available, user feedback           │
+│                                                          │
+│ 3. Determine strategy:                                   │
+│    - Mode: Check if real data sources available         │
+│    - If real: Kaggle (ecommerce) + GA4 (funnel)         │
+│    - If demo: Generate realistic checkout flow data     │
+│    - Analysis: Funnel visualization, drop-off points,   │
+│      correlation with user attributes                   │
+│                                                          │
+│ 4. Form initial hypotheses (to test):                   │
+│    - H1: Unexpected shipping costs                      │
+│    - H2: Forced account creation                        │
+│    - H3: Payment method issues                          │
+│    - H4: Mobile UX problems                             │
+└─────────────────────────────────────────────────────────┘
+Phase 2: ACT (Fetch Data)
+plain
+Copy
+Actions taken:
+├─ Check mode: "demo" (no API keys configured)
+├─ Generate demo data specification
+│  └─ LLM call: "Generate checkout flow data with 20% abandonment"
+│     └─ Result: Dataset specification with realistic patterns
+├─ Execute generation
+│  └─ 10,000 sessions, 2,000 abandonments at various stages
+└─ Validate data quality
+   └─ Check: Reasonable distributions? Yes.
+   └─ Check: Expected correlations present? Yes.
+Phase 3: OBSERVE (Analyze)
+plain
+Copy
+Analysis performed:
+├─ Funnel calculation
+│  └─ Step 1 (View cart): 10,000 (100%)
+│  └─ Step 2 (Shipping info): 8,500 (85%)
+│  └─ Step 3 (Payment): 6,000 (60%) ← 25% drop ⚠️
+│  └─ Step 4 (Confirm): 5,000 (50%)
+│  └─ Step 5 (Success): 4,800 (48%)
+│
+├─ Segment analysis
+│  └─ Mobile: 35% abandonment (vs 15% desktop) ⚠️
+│  └─ New users: 45% abandonment (vs 20% returning)
+│
+├─ Correlation analysis
+│  └─ Abandonment ↔ Shipping cost surprise: 0.78
+│  └─ Abandonment ↔ Mobile device: 0.65
+│  └─ Abandonment ↔ Forced signup: 0.42
+│
+└─ Pattern detection
+   └─ Weekend abandonment 15% higher
+   └─ Peak drop-off: Shipping info page (25%)
+Phase 4: LEARN (Synthesize)
+plain
+Copy
+Hypothesis formation:
+┌─────────────────────────────────────────────────────────┐
+│ FINDINGS:                                                │
+│                                                          │
+│ Primary Issue: Mobile checkout UX                         │
+│ Confidence: 85%                                          │
+│                                                          │
+│ Supporting Evidence:                                     │
+│ 1. Mobile abandonment 2.3x desktop (35% vs 15%)        │
+│ 2. Biggest drop at shipping info (25%)                  │
+│ 3. Strong correlation with form complexity              │
+│                                                          │
+│ Root Cause Hypothesis:                                   │
+│ Mobile forms are too complex, shipping costs not         │
+│ transparent early enough, forced account creation         │
+│ adds friction.                                           │
+│                                                          │
+│ Recommended Validation:                                  │
+│ - User interviews on mobile checkout experience         │
+│ - A/B test: guest checkout vs forced signup             │
+│ - Heatmap analysis of shipping info page                │
+│                                                          │
+│ Next Agent: PRD Agent (solution design)                 │
+└─────────────────────────────────────────────────────────┘
+1.5 Deliverables
+Primary Deliverable: DataResearchReport
+Python
+Copy
+class DataResearchReport:
+    """Complete output from Data Agent"""
+    
+    # Core findings
+    hypothesis: str                    # Primary conclusion
+    confidence_score: float            # 0.0-1.0
+    confidence_explanation: str        # Why this confidence level
+    
+    # Evidence
+    supporting_evidence: List[Evidence]  # Structured proof points
+    contradictory_evidence: List[Evidence]  # Acknowledged limitations
+    data_sources_used: List[DataSource]  # Provenance
+    
+    # Analysis artifacts
+    raw_data: pd.DataFrame             # Full dataset
+    processed_data: pd.DataFrame       # Cleaned/analysis-ready
+    visualizations: List[Visualization]  # Charts, graphs
+    statistical_tests: List[StatTest]  # Significance tests
+    
+    # Methodology
+    analysis_methodology: str          # How conclusions were reached
+    limitations: str                   # What we don't know
+    reproducibility_notes: str         # How to replicate
+    
+    # Recommendations
+    recommended_next_steps: List[str]  # What to do next
+    suggested_validation_methods: List[str]  # How to confirm
+    estimated_impact: Optional[ImpactEstimate]  # If hypothesis true
+    
+    # Agent reasoning (curated)
+    agent_thinking_summary: str        # Key reasoning steps (not raw)
+Evidence Types
+Python
+Copy
+class Evidence:
+    type: Literal["statistical", "behavioral", "correlational", "qualitative"]
+    description: str
+    data_point: Union[float, int, str]
+    context: str                       # What this means
+    confidence: float                  # Reliability of this evidence
+    source: str                        # Where it came from
+
+# Examples:
+Evidence(
+    type="statistical",
+    description="Mobile abandonment rate",
+    data_point=0.35,  # 35%
+    context="2.3x higher than desktop (15%), indicating mobile-specific issues",
+    confidence=0.95,
+    source="GA4 BigQuery public dataset, n=10,000 sessions"
+)
+
+Evidence(
+    type="correlational",
+    description="Shipping cost surprise correlation",
+    data_point=0.78,  # Pearson r
+    context="Strong positive correlation suggests unexpected costs drive abandonment",
+    confidence=0.82,
+    source="Kaggle ecommerce behavior dataset"
+)
+Visualization Types
+Funnel Chart: Step-by-step conversion with drop-off rates
+Cohort Matrix: Retention/revenue over time
+Heatmap: User behavior on specific pages
+Correlation Matrix: Variable relationships
+Time Series: Trends over time
+Distribution Plot: Value distributions with outliers
+1.6 User Interaction Flow
+Scenario A: Real Mode with Kaggle
+plain
+Copy
+USER: "I need to understand why our mobile conversion is low"
+
+AGENT: I'll help you analyze mobile conversion issues. Let me search for relevant datasets and query analytics data.
+
+[THINKING... 3 seconds]
+
+🔍 Searching Kaggle for mobile ecommerce datasets...
+📊 Found 3 relevant datasets
+📈 Querying GA4 public data for mobile funnel analysis...
+
+[ACTING... 15 seconds]
+
+✅ Downloaded: "Mobile E-commerce Behavior" (2.3 GB, 5M rows)
+✅ Queried: GA4 mobile funnel (last 30 days, 100K sessions)
+
+[ANALYZING... 20 seconds]
+
+📊 Analysis complete. Here's what I found:
+
+═══════════════════════════════════════════════════
+MOBILE CONVERSION ANALYSIS
+═══════════════════════════════════════════════════
+
+Hypothesis: Mobile checkout UX friction reduces conversion by 40%
+
+Confidence: 87%
+
+Key Evidence:
+├─ Mobile abandonment: 35% (vs 15% desktop) [GA4 data]
+├─ Primary drop: Shipping info page (25% leave) [Kaggle behavioral data]
+├─ Correlation: Form fields ↔ Abandonment (r=0.72)
+└─ Segment: New mobile users 3x more likely to abandon
+
+Statistical Significance: p < 0.001 (highly significant)
+
+Data Sources:
+• Kaggle: Mobile E-commerce Behavior (5M sessions)
+• GA4 Public: Funnel analysis (100K mobile sessions)
+
+Limitations:
+• No access to your specific user feedback
+• Seasonal effects not fully controlled
+• iOS/Android breakdown limited in public data
+
+Recommended Next Steps:
+1. User interviews: Mobile checkout experience (validate hypothesis)
+2. A/B test: Simplified mobile form vs current
+3. Heatmap analysis: Shipping info page behavior
+
+[Proceed to solution design?] [Gather more data?] [Export full report?]
+Scenario B: Demo Mode
+plain
+Copy
+USER: "I want to test this system. Generate demo data for a SaaS product."
+
+AGENT: I'll generate realistic demo data for SaaS user behavior analysis.
+
+[THINKING... 2 seconds]
+
+🎲 Generating synthetic SaaS dataset...
+
+Parameters:
+• 10,000 users
+• 6-month timeline
+• Events: signup → activation → engagement → upgrade/churn
+• Realistic patterns: 30% activation, 5% monthly churn
+
+[GENERATING... 10 seconds]
+
+✅ Generated: 10,000 users, 150,000 events
+
+Statistical Validation:
+├─ Activation rate: 31.2% (target: 30%) ✓
+├─ Churn pattern: Exponential decay ✓
+├─ Revenue distribution: Pareto (80/20) ✓
+└─ Seasonality: Weekend dips observed ✓
+
+[ANALYZING... 15 seconds]
+
+📊 Demo Analysis Results:
+
+═══════════════════════════════════════════════════
+SAAS USER BEHAVIOR ANALYSIS (DEMO DATA)
+═══════════════════════════════════════════════════
+
+⚠️  DEMO MODE: This is synthetic data for testing purposes
+
+Hypothesis: Onboarding complexity prevents 40% of signups from activating
+
+Confidence: 82% (simulated)
+
+Key Findings:
+├─ Activation rate: 31% (industry avg: 40%)
+├─ Biggest drop: Step 3 of 5 (API integration)
+├─ Time-to-activate: 2.3 days (long)
+└─ Correlation: Onboarding time ↔ Churn (r=0.68)
+
+Recommended Actions:
+1. Simplify Step 3 (provide templates)
+2. Add progress indicator (reduce anxiety)
+3. Offer onboarding call for stuck users
+
+[Proceed with PRD?] [Adjust demo parameters?] [Export dataset?]
+2. PRD AGENT - DEEP SPECIFICATION
+2.1 Agent Identity
+Name: Principal Product Manager
+Role: Senior PM at top-tier tech company (FAANG level)
+Personality: Strategic, user-obsessed, data-informed, execution-focused
+Voice: Clear, structured, actionable, business-impact oriented
+2.2 Core Philosophy
+The PRD Agent doesn't just "write documents"—it drives product decisions:
+Problem-first: Deep understanding before solution
+User-obsessed: Every feature tied to user value
+Data-informed: Uses Data Agent findings, not gut feeling
+Business-aware: Revenue, retention, competitive positioning
+Execution-ready: Engineers can build from this doc
+2.3 Capabilities Deep Dive
+Capability 1: Research Synthesis
+What it does:
+Reads Data Agent findings (hypothesis, evidence, confidence)
+Identifies gaps in understanding
+Cross-references with industry benchmarks
+Formulates strategic framing
+Technical Implementation:
+Python
+Copy
+class ResearchSynthesizer:
+    """
+    Transforms raw data into strategic insights.
+    """
+    
+    async def synthesize(
+        self,
+        data_report: DataResearchReport,
+        original_goal: str,
+        industry_context: Optional[IndustryContext] = None
+    ) -> SynthesisResult:
+        """
+        Synthesize research into strategic foundation.
+        
+        Process:
+        1. Extract core problem from data
+        2. Identify user pain points (with quotes/behavioral evidence)
+        3. Quantify business impact (revenue, retention, growth)
+        4. Benchmark against industry standards
+        5. Identify strategic opportunities
+        
+        Output:
+        - Problem statement (1 paragraph)
+        - User pain points (3-5 bullets with evidence)
+        - Business impact calculation
+        - Strategic framing (why this matters now)
+        """
+        
+    async def identify_gaps(
+        self,
+        data_report: DataResearchReport
+    ) -> List[ResearchGap]:
+        """
+        Identify what we still don't know.
+        
+        Examples:
+        - "No qualitative data on user emotions"
+        - "Missing competitive analysis"
+        - "Unclear technical constraints"
+        
+        Each gap includes: severity, suggested research method
+        """
+User Interaction:
+plain
+Copy
+AGENT INTERNAL: Research Synthesis
+═══════════════════════════════════
+
+Input: Data Agent report on mobile checkout abandonment
+
+Analysis:
+├─ Core problem: 35% mobile abandonment, 2.3x desktop
+├─ Key insight: Shipping info page is primary drop-off (25%)
+├─ User segment: New mobile users most affected
+└─ Business impact: $45K/month revenue loss (estimated)
+
+Strategic Framing:
+This is not just a "mobile optimization"—it's a first impression
+problem. New users on mobile are 3x more likely to abandon,
+suggesting our onboarding trust-building is broken.
+
+Industry Benchmark:
+• Top quartile mobile conversion: 8-12%
+• Our mobile conversion: 4.8%
+• Gap: 3-7 percentage points = $200K-500K annual revenue
+
+Gaps Identified:
+⚠️  No qualitative data (user interviews needed)
+⚠️  No competitive UX analysis
+⚠️  Technical constraints unknown (payment provider limitations?)
+Capability 2: PRD Section Generation
+The PRD Agent generates 8 distinct sections, each with specific purpose and format.
+Section 1: Executive Summary
+Purpose: One-page overview for busy executives
+Audience: C-level, VP Product, senior stakeholders
+Length: 200-300 words
+Format: 4 paragraphs
+Structure:
+markdown
+Copy
+1. The Problem (1 sentence)
+   "Mobile checkout abandonment is costing us $45K/month 
+   and hurting new user acquisition."
+
+2. The Insight (1-2 sentences)
+   "Data shows 35% of mobile users abandon at shipping info, 
+   2.3x desktop rate. Root cause: unexpected costs + complex forms."
+
+3. The Solution (2-3 sentences)
+   "Redesign mobile checkout with transparent pricing early, 
+  
+Your conversation with Kimi is getting too long. Try starting a new session.
+Edit
+Copy
+Share
+I can see you shared the detailed agent specifications document I was creating, but it appears to have been cut off at the end (stopped at Section 1 of the PRD Agent).
+Let me complete this comprehensive documentation by continuing from where it cut off. I'll provide the full specifications for all 3 agents with every minute detail:
+COMPLETE AGENT SPECIFICATIONS
+Agentic Research AI - Full Technical Documentation
+2. PRD AGENT - DEEP SPECIFICATION (Continued)
+2.3 Capabilities Deep Dive (Continued)
+Section 1: Executive Summary (Continued)
+Structure:
+markdown
+Copy
+1. The Problem (1 sentence)
+   "Mobile checkout abandonment is costing us $45K/month 
+   and hurting new user acquisition."
+
+2. The Insight (1-2 sentences)
+   "Data shows 35% of mobile users abandon at shipping info, 
+   2.3x desktop rate. Root cause: unexpected costs + complex forms."
+
+3. The Solution (2-3 sentences)
+   "Redesign mobile checkout with transparent pricing early, 
+   guest checkout option, and simplified 2-step mobile flow. 
+   Target: Reduce abandonment to 20%, recover $25K/month."
+
+4. Success Metrics (1 sentence)
+   "Primary: Mobile conversion rate 4.8% → 8%. 
+   Secondary: Time-to-checkout <2 min, NPS +15 points."
+User Interaction:
+plaintext
+Copy
+PRD Agent: Drafting Executive Summary...
+
+═══════════════════════════════════════════════════
+EXECUTIVE SUMMARY: Mobile Checkout Optimization
+═══════════════════════════════════════════════════
+
+THE PROBLEM
+Mobile checkout abandonment is costing us $45K/month and 
+preventing new user acquisition growth.
+
+THE INSIGHT  
+Data analysis of 100K sessions reveals 35% of mobile users abandon 
+at shipping info (2.3x desktop rate). Root cause: unexpected shipping 
+costs revealed late + forced account creation + complex forms on small 
+screens.
+
+THE SOLUTION
+Implement "Mobile-First Checkout 2.0": (1) Transparent pricing 
+calculator on product page, (2) Guest checkout option, (3) Simplified 
+2-step mobile flow with Apple Pay/Google Pay prominence. Target: 
+Reduce mobile abandonment from 35% to 20%, recover $25K monthly revenue.
+
+SUCCESS METRICS
+• Primary: Mobile conversion 4.8% → 8.0% (+67% relative)
+• Secondary: Checkout completion time <2 minutes
+• Secondary: Customer satisfaction (checkout-specific) +20 points
+
+ESTIMATED EFFORT: 3 sprints (6 weeks)
+CONFIDENCE: High (clear user problem, proven solutions)
+
+[Edit summary?] [Proceed to full PRD?] [Add financial model?]
+Section 2: Problem Statement
+Purpose: Deep understanding of user pain and business impact
+Audience: Product team, designers, engineers
+Length: 500-800 words
+Format: Structured narrative with evidence
+Components:
+Python
+Copy
+class ProblemStatement:
+    """
+    Comprehensive problem definition with evidence.
+    """
+    
+    user_pain_points: List[PainPoint]
+    business_impact: BusinessImpact
+    current_state_analysis: CurrentState
+    why_now: str  # Why solve this now vs later
+    
+@dataclass
+class PainPoint:
+    description: str
+    severity: Literal["critical", "high", "medium", "low"]
+    frequency: str  # "% of users affected"
+    evidence: List[str]  # Data Agent findings
+    user_quote: Optional[str]  # If available
+    
+@dataclass  
+class BusinessImpact:
+    revenue_at_risk: float
+    users_affected_monthly: int
+    churn_contribution: Optional[float]
+    acquisition_impact: str
+    calculation_methodology: str
+Example Output:
+Markdown
+Fullscreen 
+Download 
+Fit
+Code
+Preview
+Severity: Critical - Primary drop-off driver
+Frequency: 73% of abandoners cite unexpected costs
+Evidence: Data Agent correlation analysis (r=0.78)
+User Behavior: Users reach shipping info, see $12.99 shipping,
+immediately exit (avg 3.2 seconds on page)
+Impact: 25% of ALL mobile users drop here
+Severity: High - Adds friction for new users
+Frequency: 45% of new mobile users abandon vs 20% returning
+Evidence: Segment analysis from GA4 data
+User Behavior: 40% of drop-offs occur at "Create Account" step
+Impact: Losing 3x more new users than necessary
+Severity: High - Screen size exacerbates issue
+Frequency: Mobile abandonment 2.3x desktop rate
+Evidence: Funnel comparison (35% mobile vs 15% desktop)
+User Behavior: Average 4.2 form fields filled before abandonment
+Impact: Mobile users 65% more likely to abandon
+2.1 User Pain Points
+Monthly revenue loss: $45,000 (calculated: 15,000 abandonments × $3.00 avg shipping × 20% would complete)
+Annual impact: $540,000
+User acquisition: 25% higher CAC due to low conversion
+Competitive risk: Users likely going to Amazon (free shipping expectation)
+2.2 Business Impact
+2. PROBLEM STATEMENT
+Lost Revenue = (Mobile Sessions × Mobile Abandonment Rate × Avg Order Value)
+= (100,000 × 0.35 × $45)
+= $1,575,000 potential
+Current Capture = $1,575,000 × 0.048 (conversion) = $75,600
+Lost = $1,575,000 - $75,600 = $1,499,400 annual potential
+Current Loss = $540,000 (conservative: only shipping surprise fixable)
+plain
+Copy
+
+### 2.3 Why Now?
+
+- Q4 holiday season approaching (40% of annual revenue)
+- New mobile traffic +35% YoY (trend accelerating)
+- Competitor X just launched simplified checkout (market pressure)
+- Technical debt: Current checkout is 3 years old, not mobile-optimized
+Section 3: User Personas & Stories
+Purpose: Human-centered design foundation
+Format: 2-3 primary personas with detailed stories
+Python
+Copy
+class Persona:
+    name: str
+    archetype: str
+    demographics: Dict[str, str]
+    behaviors: List[str]
+    goals: List[str]
+    frustrations: List[str]
+    tech_comfort: Literal["low", "medium", "high"]
+    device_primary: str
+    
+class UserStory:
+    story: str  # "As a [persona], I want [goal], so that [benefit]"
+    acceptance_criteria: List[str]
+    priority: Literal["P0", "P1", "P2"]
+    related_data: str  # Link to Data Agent findings
+Example Output:
+Markdown
+Fullscreen 
+Download 
+Fit
+Code
+Preview
+Age: 28
+Occupation: Marketing coordinator
+Income: $65K/year
+Location: Urban, USA
+Device: iPhone 13 (primary internet device)
+Shops on phone during commute (30 min subway ride)
+Abandons if checkout takes >3 minutes
+Uses Apple Pay for 80% of mobile purchases
+Price-sensitive but values convenience
+Rarely creates accounts unless necessary
+Buy quickly without hassle
+Know total cost upfront
+Use preferred payment method
+Track order easily (guest checkout OK if tracking provided)
+"Why do I need to create an account just to buy?"
+"Shipping costs should be on the product page"
+"Forms are impossible to fill on my phone"
+"I don't remember my password"
+Primary Persona: "Mobile Maria"
+User Stories
+3. USER PERSONAS & STORIES
+As a Mobile Maria,
+I want to see shipping costs on the product page,
+So that I can make an informed purchase decision without surprise.
+plain
+Copy
+
+**Acceptance Criteria:**
+- [ ] Shipping calculator visible on product page
+- [ ] Zip code input updates shipping cost in real-time
+- [ ] Free shipping threshold prominently displayed
+- [ ] Total price (product + shipping + tax) shown before checkout
+- [ ] Mobile-optimized: Large tap targets, auto-fill support
+
+**Data Evidence:** 73% of abandoners cite unexpected costs (Data Agent)
+
+---
+
+**Story 2: Guest Checkout (P0)**
+As a Mobile Maria,
+I want to checkout as a guest without creating an account,
+So that I can complete my purchase quickly.
+plain
+Copy
+
+**Acceptance Criteria:**
+- [ ] "Continue as Guest" option prominently displayed
+- [ ] Guest checkout flow ≤ 2 steps
+- [ ] Email collected for order confirmation only (no marketing)
+- [ ] Option to create account AFTER purchase (post-purchase upsell)
+- [ ] Order tracking available via email link (no login required)
+
+**Data Evidence:** New users 3x more likely to abandon (Data Agent)
+
+---
+
+**Story 3: Mobile-Optimized Payment (P1)**
+As a Mobile Maria,
+I want to use Apple Pay/Google Pay,
+So that I don't have to type credit card details on my phone.
+plain
+Copy
+
+**Acceptance Criteria:**
+- [ ] Apple Pay button displayed first on mobile Safari
+- [ ] Google Pay button displayed first on mobile Chrome
+- [ ] One-tap payment with shipping address auto-fill
+- [ ] Fallback to manual card entry if wallet unavailable
+
+**Data Evidence:** Mobile forms have 65% higher abandonment (Data Agent)
+Section 4: Functional Requirements
+Purpose: Detailed feature specifications
+Format: Feature breakdown with requirements, acceptance criteria, and constraints
+Python
+Copy
+class Feature:
+    id: str  # FEAT-001
+    name: str
+    description: str
+    priority: Literal["P0", "P1", "P2"]
+    user_story_refs: List[str]
+    requirements: List[Requirement]
+    technical_constraints: List[str]
+    dependencies: List[str]
+    
+class Requirement:
+    id: str  # REQ-001
+    description: str
+    acceptance_criteria: List[str]
+    priority: Literal["P0", "P1", "P2"]
+    test_scenarios: List[str]
+Example Output:
+Markdown
+Fullscreen 
+Download 
+Fit
+Code
+Preview
+Description: User inputs zip code, sees accurate shipping cost
+ Input field accepts 5-digit zip codes with validation
+ Real-time API call to shipping provider (<500ms response)
+ Display: Standard ($X.XX, 3-5 days), Express ($X.XX, 1-2 days)
+ Error handling: Invalid zip shows "Please enter valid zip code"
+ Cache results for session to avoid repeated API calls
+Acceptance Criteria:
+Valid zip: 90210 → Returns $12.99 standard, $24.99 express
+Invalid zip: 99999 → Shows error message
+Remote zip: 99501 (Alaska) → Shows extended delivery options
+Test Scenarios:
+Description: Visual indicator showing progress toward free shipping
+ Display: "Add $X.XX more for FREE shipping!"
+ Updates dynamically as cart changes
+ Threshold: $50 (configurable via admin)
+ Mobile: Prominent placement above "Add to Cart" button
+ Animation: Smooth progress bar fill on cart updates
+Acceptance Criteria:
+Cart: $35 → Shows "Add $15.00 more for FREE shipping!"
+Cart: $50 → Shows "🎉 You qualify for FREE shipping!"
+Cart: $75 → Shows "FREE shipping applied!"
+Test Scenarios:
+Shipping API rate limit: 100 req/min (implement caching)
+Must work without JavaScript (graceful degradation)
+Zip validation: USPS API for address verification
+FEAT-003 (Cart Service API)
+Shipping provider contract (FedEx/UPS)
+Feature 1: Smart Shipping Calculator (FEAT-001)
+Description: Prominent guest option on checkout start
+ "Continue as Guest" button primary CTA on mobile
+ "Sign In" secondary option (for returning users)
+ "Create Account" tertiary (benefits listed: faster checkout, rewards)
+ A/B test: Guest first vs Sign In first (default: Guest first)
+ Persist choice: Remember for 30 days (cookie)
+Acceptance Criteria:
+New user sees: Guest (primary), Sign In (secondary), Create Account (text link)
+Returning user sees: Sign In (primary), Guest (secondary)
+Test Scenarios:
+Description: Minimal information collection, maximum speed
+ Step 1: Email + Shipping Address (auto-fill enabled)
+ Step 2: Payment Method (Apple Pay/Google Pay prominent)
+ Progress indicator: "Step 1 of 2" with visual progress bar
+ No account creation fields unless user opts in
+ Save info option: "Save for faster checkout next time" (creates account)
+Acceptance Criteria:
+Complete flow: Email → Address → Apple Pay → Confirmation (45 seconds)
+Error: Invalid email → Inline validation, no page reload
+Error: Payment declined → Show error, preserve shipping info
+Test Scenarios:
+Description: Converting guest to registered user after successful order
+ Thank you page: "Create account to track orders & earn rewards"
+ Pre-filled: Email from checkout, password creation only
+ One-click: "Create account with Apple/Google" if used for payment
+ Incentive: 10% off next order (auto-applied to account)
+ Order history: Guest purchases linked to new account
+Acceptance Criteria:
+Guest completes order → Sees "Create account in 1 click" with 10% off offer
+Creates account → Previous order appears in history
+Declines → No further prompts for 30 days
+Test Scenarios:
+Email must be valid (sendgrid verification)
+PCI compliance: No card data stored (token only)
+Fraud prevention: Max 3 guest orders per email per day
+Payment gateway (Stripe)
+Email service (SendGrid)
+Fraud detection (Signifyd)
+Feature 2: Guest Checkout Flow (FEAT-002)
+4. FUNCTIONAL REQUIREMENTS
+Section 5: Non-Functional Requirements
+Purpose: Performance, security, accessibility specifications
+Markdown
+Fullscreen 
+Download 
+Fit
+Code
+Preview
+Metric	Target	Measurement
+Page Load (Product)	<2s	Lighthouse mobile
+Shipping Calculation	<500ms	API response time
+Checkout Completion	<2 min	User timing
+Time to Interactive	<3s	Lighthouse
+API Error Rate	<0.1%	24h window
+5.1 Performance
+PCI DSS Level 1: All card data handled by Stripe (tokenization)
+GDPR/CCPA: Email consent explicit, one-click unsubscribe
+Fraud Detection: Signifyd integration, $0 liability guarantee
+Data Retention: Guest emails retained 2 years (order history), then anonymized
+5.2 Security & Privacy
+All form fields have associated labels
+Error messages announced via ARIA live regions
+Keyboard navigation: Tab order logical, visible focus states
+Color contrast: 4.5:1 minimum for text
+Touch targets: Minimum 44×44px on mobile
+5.3 Accessibility (WCAG 2.1 AA)
+Mobile Safari (iOS 14+)
+Chrome Mobile (Android 10+)
+Samsung Internet (latest)
+Graceful degradation for older browsers
+5.4 Browser Support
+5. NON-FUNCTIONAL REQUIREMENTS
+Section 6: Success Metrics & KPIs
+Python
+Copy
+class SuccessMetric:
+    name: str
+    current_value: float
+    target_value: float
+    measurement_method: str
+    owner: str  # Team responsible
+    review_cadence: str  # "daily", "weekly", "monthly"
+Example Output:
+Markdown
+Fullscreen 
+Download 
+Fit
+Code
+Preview
+Current: 4.8%
+Target: 8.0% (+67% relative)
+Measurement: GA4 ecommerce tracking, mobile segment
+Owner: Product Manager
+Review: Weekly
+Success Threshold: >6.5% (acceptable), >8.0% (target)
+Current: 35%
+Target: 20% (-43% relative)
+Measurement: Funnel analysis, shipping info step
+Owner: Product Manager
+Review: Daily (first 2 weeks), then weekly
+Success Threshold: <25% (acceptable), <20% (target)
+Primary Metrics (P0)
+Current: 0% (feature doesn't exist)
+Target: 60% of new users choose guest
+Measurement: Checkout flow analytics
+Owner: UX Research
+Current: 4.2 minutes (mobile)
+Target: <2 minutes
+Measurement: Session recording (Hotjar/FullStory)
+Secondary Metrics (P1)
+Current: 45% of purchasers create accounts
+Guardrail: Don't drop below 30%
+Rationale: Long-term LTV depends on registered users
+Current: $45
+Guardrail: Don't drop below $40
+Rationale: Free shipping threshold might reduce AOV
+Guardrail Metrics (Watch for negative impact)
+6. SUCCESS METRICS & KPIs
+Section 7: Release Plan
+Markdown
+Fullscreen 
+Download 
+Fit
+Code
+Preview
+FEAT-002: Guest checkout (REQ-003, REQ-004)
+FEAT-001: Basic shipping calculator (REQ-001 only)
+Analytics: Basic funnel tracking
+Guest checkout functional, no critical bugs
+50% of test users complete checkout <3 min
+Feature flag: Can disable guest checkout in <5 min
+Monitor: Conversion rate, error rates for 48h post-launch
+Phase 1: MVP (Weeks 1-3)
+FEAT-001: Free shipping progress bar (REQ-002)
+FEAT-002: Post-purchase account creation (REQ-005)
+Apple Pay/Google Pay prominence
+A/B test: Guest vs Sign-in first
+Mobile conversion >6.5%
+40% of guests create accounts post-purchase
+Phase 2: Optimization (Weeks 4-6)
+Multi-currency support
+International shipping calculations
+Saved addresses for guests (cookie-based)
+One-tap reorder for guests
+Phase 1 & 2 must hit 80% of targets
+Otherwise: Iterate on Phase 2 before proceeding
+Phase 3: Scale (Weeks 7-8)
+7. RELEASE PLAN
+Section 8: Open Questions & Risks
+Markdown
+Fullscreen 
+Download 
+Fit
+Code
+Preview
+Does Stripe support guest checkout with saved cards?
+What's the PCI compliance scope if we store shipping addresses?
+Owner: Engineering Lead
+Due: Week 1, Day 2
+Current rate limit: 100 req/min
+Peak traffic: 500 req/min during sales
+Action: Negotiate higher limit or implement aggressive caching
+Owner: Engineering Lead
+Due: Week 1, Day 3
+Guest checkout increases fraud risk
+What's acceptable fraud rate? (Current: 0.5%)
+Owner: Finance + Risk
+Due: Week 1, Day 5
+Open Questions (Need answers before development)
+Risk	Probability	Impact	Mitigation
+Fraud increase	Medium	High	Signifyd integration, $0 liability, transaction limits
+AOV decrease	Medium	Medium	Monitor closely, adjust free shipping threshold
+Technical complexity	Low	High	Phased rollout, feature flags, rollback plan
+User confusion (too many options)	Medium	Low	UX testing, clear CTAs, analytics on click-through
+Risk Register
+8. OPEN QUESTIONS & RISKS
+2.4 PRD Agent Deliverables
+Python
+Copy
+class PRDDocument:
+    """
+    Complete Product Requirements Document
+    """
+    
+    # Metadata
+    title: str
+    version: str  # Semantic versioning
+    status: Literal["draft", "review", "approved", "deprecated"]
+    owner: str  # Product Manager name
+    stakeholders: List[str]
+    created_date: datetime
+    last_updated: datetime
+    
+    # Core sections
+    executive_summary: ExecutiveSummary
+    problem_statement: ProblemStatement
+    user_personas: List[Persona]
+    user_stories: List[UserStory]
+    functional_requirements: List[Feature]
+    non_functional_requirements: NonFunctionalReqs
+    success_metrics: List[SuccessMetric]
+    release_plan: ReleasePlan
+    open_questions: List[OpenQuestion]
+    risks: List[Risk]
+    
+    # Appendices
+    data_report_ref: str  # Link to Data Agent findings
+    competitive_analysis: Optional[CompetitiveAnalysis]
+    technical_architecture: Optional[ArchitectureDoc]
+    wireframes: Optional[WireframeSet]
+    
+    # Agent reasoning
+    strategic_rationale: str  # Why this approach
+    alternatives_considered: List[Alternative]  # What we rejected and why
+    confidence_assessment: ConfidenceAssessment
+
+class ConfidenceAssessment:
+    """
+    PRD Agent's self-assessment of document quality
+    """
+    overall_confidence: float  # 0.0-1.0
+    evidence_strength: Literal["strong", "moderate", "weak"]
+    risk_level: Literal["low", "medium", "high"]
+    known_unknowns: List[str]  # What could invalidate this PRD
+    recommended_validation: List[str]  # Before building
+2.5 User Interaction Flow
+Scenario: Complete PRD Generation
+plaintext
+Copy
+USER: "Based on the data analysis, create a full PRD for the mobile checkout fix"
+
+PRD AGENT: I'll create a comprehensive PRD based on the Data Agent's findings. 
+This will take about 60-90 seconds.
+
+[THINKING... 5 seconds]
+├─ Analyzing Data Agent report: 35% mobile abandonment, shipping surprise primary cause
+├─ Synthesizing strategic framing: First impression problem, not just mobile optimization
+├─ Calculating business impact: $540K annual revenue at risk
+└─ Identifying gaps: Need user interviews, competitive analysis, technical constraints
+
+[RESEARCHING... 10 seconds]
+├─ Benchmarking: Top quartile mobile conversion 8-12% (Baymard Institute)
+├─ Best practices: Guest checkout reduces friction 20-30% (Amazon, Apple)
+└─ Technical patterns: 2-step checkout industry standard
+
+[GENERATING... 45 seconds]
+├─ Executive Summary: Drafted (250 words)
+├─ Problem Statement: 3 pain points with evidence
+├─ User Personas: "Mobile Maria" primary persona created
+├─ User Stories: 3 P0 stories with acceptance criteria
+├─ Functional Requirements: 2 features, 5 detailed requirements
+├─ Non-Functional: Performance, security, accessibility specs
+├─ Success Metrics: 4 primary, 2 guardrail metrics
+├─ Release Plan: 3 phases, 8 weeks total
+└─ Open Questions: 3 critical questions for engineering
+
+✅ PRD Generated: 12 sections, 3,500 words
+
+═══════════════════════════════════════════════════
+PRD: MOBILE CHECKOUT OPTIMIZATION v1.0
+═══════════════════════════════════════════════════
+
+[Executive Summary displayed...]
+
+[Problem Statement displayed...]
+
+[User Personas displayed...]
+
+[Functional Requirements displayed...]
+
+[View Full PRD (12 sections)] [Export to Markdown] [Export to Notion] 
+[Send to UI/UX Agent?] [Request changes?]
+3. UI/UX DESIGNER AGENT - DEEP SPECIFICATION
+3.1 Agent Identity
+Name: Senior Product Designer
+Role: Staff-level IC at top design-driven company (Apple, Airbnb, Figma)
+Personality: Detail-obsessed, accessibility champion, interaction perfectionist
+Voice: Visual, precise, explains design decisions, references patterns
+Design Philosophy:
+Mobile-first: Design for constraints, scale up
+Accessible by default: WCAG 2.1 AA minimum, AAA where possible
+Evidence-based: Every decision tied to user data or HCI research
+Polished: Micro-interactions, loading states, error handling
+Systematic: Design tokens, component libraries, consistency
+3.2 Core Philosophy
+The UI/UX Agent doesn't just "make screens"—it crafts experiences:
+Problem-first: Understands the user pain before pixel placement
+Interaction design: Not just static mockups, but flows and states
+Accessibility champion: Designs for screen readers, keyboard, motor impairments
+Developer-friendly: Specs are buildable, uses standard components
+Data-informed: References Data Agent findings in design rationale
+3.3 Capabilities Deep Dive
+Capability 1: Design System Architecture
+What it does:
+Creates or extends design systems
+Defines tokens (colors, typography, spacing)
+Builds component libraries
+Ensures consistency across screens
+Python
+Copy
+class DesignSystem:
+    """
+    Complete design system specification
+    """
+    
+    name: str
+    version: str
+    tokens: DesignTokens
+    components: List[Component]
+    patterns: List[Pattern]
+    principles: List[str]
+
+class DesignTokens:
+    colors: ColorPalette
+    typography: TypeScale
+    spacing: SpacingScale
+    shadows: ShadowScale
+    radii: BorderRadiusScale
+    animation: AnimationTokens
+
+class Component:
+    name: str
+    variants: List[Variant]
+    states: List[State]  # default, hover, active, disabled, error
+    props: List[Prop]
+    accessibility: A11ySpec
+    usage_guidelines: str
+    code_reference: Optional[str]  # Link to Storybook/GitHub
+Example Output:
+JSON
+Copy
+{
+  "design_system": {
+    "name": "Checkout Design System v1",
+    "tokens": {
+      "colors": {
+        "primary": {
+          "50": "#eff6ff",
+          "500": "#3b82f6",
+          "600": "#2563eb",
+          "700": "#1d4ed8"
+        },
+        "semantic": {
+          "success": "#10b981",
+          "error": "#ef4444",
+          "warning": "#f59e0b",
+          "info": "#3b82f6"
+        }
+      },
+      "typography": {
+        "font_family": "system-ui, -apple-system, sans-serif",
+        "scale": {
+          "xs": "0.75rem",
+          "sm": "0.875rem",
+          "base": "1rem",
+          "lg": "1.125rem",
+          "xl": "1.25rem",
+          "2xl": "1.5rem"
+        }
+      },
+      "spacing": {
+        "scale": [0, 4, 8, 12, 16, 24, 32, 48, 64],
+        "unit": "px"
+      }
+    }
+  }
+}
+Capability 2: User Flow Mapping
+What it does:
+Maps complete user journeys
+Identifies decision points and branches
+Designs for edge cases and errors
+Optimizes for task completion
+Python
+Copy
+class UserFlow:
+    """
+    Complete user flow specification
+    """
+    
+    name: str
+    entry_points: List[EntryPoint]
+    steps: List[FlowStep]
+    exit_points: List[ExitPoint]
+    decision_trees: List[Decision]
+    error_paths: List[ErrorPath]
+    edge_cases: List[EdgeCase]
+
+class FlowStep:
+    id: str
+    screen_ref: str  # Link to screen design
+    action_required: str
+    time_estimate: str  # "30 seconds"
+    cognitive_load: Literal["low", "medium", "high"]
+    drop_off_risk: float  # 0.0-1.0
+    design_rationale: str
+Example Output:
+Markdown
+Fullscreen 
+Download 
+Fit
+Code
+Preview
+1. Product Page CTA: "Buy Now" button
+2. Cart Page: "Proceed to Checkout"
+3. Mini Cart: Slide-out checkout button
+Entry Points
+Screen: Checkout Entry
+Action: Choose guest vs sign-in
+Cognitive Load: Low (clear choices)
+Drop-off Risk: 5% (from Data Agent)
+Primary CTA: "Continue as Guest" (green, full width)
+Secondary: "Sign In" (text link, for returning users)
+Visual hierarchy: Guest 3x more prominent based on persona data
+Design Rationale:
+Screen: Shipping Form
+Action: Enter email + shipping address
+Cognitive Load: Medium (form filling)
+Drop-off Risk: 25% (CRITICAL - from Data Agent)
+Auto-fill enabled (browser + Apple/Google Pay)
+Single-column layout (mobile optimal)
+Inline validation (no page reload)
+Progress bar: "Step 1 of 2" (reduces anxiety)
+Design Rationale:
+Screen: Payment Selection
+Action: Choose payment method
+Cognitive Load: Low (taps, not typing)
+Drop-off Risk: 15%
+Apple Pay/Google Pay prominent (top option)
+Card entry: Camera scan primary, manual secondary
+Security badges: "🔒 Secure checkout" (trust signal)
+Design Rationale:
+Screen: Order Confirmation
+Action: Review + confirm
+Cognitive Load: Low (summary only)
+Drop-off Risk: 5%
+Clear order summary (items, shipping, total)
+Editable sections (accordion expand)
+Final CTA: "Place Order" (high contrast)
+Design Rationale:
+Flow Steps
+1. Success: Order confirmation page + email
+2. Abandonment: Any step (recover via email)
+3. Error: Payment failure (retry or alternative)
+Exit Points
+Payment Declined: Inline error, preserve shipping info, suggest alternative payment
+Address Invalid: Real-time validation, suggest corrections (Google Places API)
+Session Timeout: Save progress, email "Complete your order" link
+Error Paths
+International: Currency switcher, shipping restrictions
+Out of Stock: Real-time inventory check, notify before payment
+High-Risk Order: Additional verification (SMS code)
+Edge Cases
+USER FLOW: Guest Checkout (Mobile)
+Capability 3: Screen Design & Specifications
+What it does:
+Designs every screen in the flow
+Specifies layouts, components, content
+Defines interactions and animations
+Creates responsive breakpoints
+Python
+Copy
+class Screen:
+    """
+    Complete screen specification
+    """
+    
+    id: str  # SCR-001
+    name: str
+    route: str  # /checkout/shipping
+    viewport: ViewportSpec
+    layout: Layout
+    components: List[ComponentInstance]
+    interactions: List<Interaction>
+    states: List[ScreenState>
+    accessibility: ScreenA11y
+    
+class Layout:
+    type: Literal["single_column", "split", "grid"]
+    max_width: str  # "480px" for mobile
+    padding: str  # "16px"
+    grid_template: Optional[str]  # CSS grid
+    
+class ComponentInstance:
+    component_id: str  # Reference to DesignSystem
+    position: Position
+    props: Dict[str, any]
+    responsive_behavior: ResponsiveBehavior
+    
+class Interaction:
+    trigger: str  # "onClick", "onScroll", "onLoad"
+    action: str  # "navigate", "showModal", "validate"
+    animation: Optional[AnimationSpec>
+    feedback: str  # Haptic, sound, visual
+Example Output:
+Markdown
+Fullscreen 
+Download 
+Fit
+Code
+Preview
+Layout Specification
+SCREEN SPECIFICATION: Shipping Information (Mobile)
+┌─────────────────────────────┐
+│ ← Back          Secure 🔒   │  ← Header (56px)
+├─────────────────────────────┤
+│ Step 1 of 2         [====> ] │  ← Progress (32px)
+├─────────────────────────────┤
+│                             │
+│ Shipping Information        │  ← Title (24px)
+│                             │
+│ Email *                     │
+│ ┌───────────────────────┐   │
+│ │ maria@example.com     │   │  ← Input (56px)
+│ └───────────────────────┘   │
+│                             │
+│ Shipping Address            │
+│ ┌───────────────────────┐   │
+│ │ 123 Main St           │   │  ← Address Line 1
+│ └───────────────────────┘   │
+│ ┌───────────────────────┐   │
+│ │ Apt 4B                │   │  ← Address Line 2
+│ └───────────────────────┘   │
+│ ┌──────────┐ ┌──────────┐   │
+│ │ New York │ │ NY 10001 │   │  ← City, State/ZIP
+│ └──────────┘ └──────────┘   │
+│                             │
+│ Shipping Method             │
+│ ┌───────────────────────┐   │
+│ ● Standard $5.99 (3-5 days)│  ← Radio selected
+│ └───────────────────────┘   │
+│ ┌───────────────────────┐   │
+│ ○ Express $12.99 (1-2)  │   │  ← Radio option
+│ └───────────────────────┘   │
+│                             │
+│ [Continue to Payment]       │  ← CTA (56px)
+│                             │
+└─────────────────────────────┘
+plain
+Copy
+
+---
+
+### Component Specifications
+
+**1. Progress Indicator**
+- **Component:** Stepper
+- **Props:** 
+  - steps: 2
+  - current: 1
+  - labels: ["Shipping", "Payment"]
+- **Animation:** Fill width transition 300ms ease-out
+- **Accessibility:** aria-valuenow="1", aria-valuemax="2"
+
+**2. Email Input**
+- **Component:** TextInput
+- **Props:**
+  - type: "email"
+  - autoComplete: "email"
+  - keyboard: "email-address" (mobile)
+  - validation: "real-time"
+- **States:**
+  - Default: Border gray-300
+  - Focus: Border primary-500, shadow-sm
+  - Valid: Border success, checkmark icon
+  - Error: Border error, shake animation, error text
+- **Accessibility:** 
+  - label: "Email address (for order confirmation)"
+  - aria-required: true
+  - aria-describedby: "email-error" (when invalid)
+
+**3. Shipping Method Selection**
+- **Component:** RadioGroup
+- **Props:**
+  - options: [
+      {id: "standard", label: "Standard Shipping", price: "$5.99", eta: "3-5 business days"},
+      {id: "express", label: "Express Shipping", price: "$12.99", eta: "1-2 business days"}
+    ]
+  - default: "standard"
+- **Interaction:**
+  - Tap: Select option, haptic feedback (light)
+  - Visual: Selected = filled circle + highlighted border
+- **Accessibility:**
+  - role: "radiogroup"
+  - aria-label: "Select shipping method"
+
+**4. Primary CTA**
+- **Component:** Button
+- **Props:**
+  - variant: "primary"
+  - size: "large" (56px height)
+  - fullWidth: true
+  - text: "Continue to Payment"
+- **States:**
+  - Default: bg-primary-600, white text
+  - Hover: bg-primary-700 (desktop)
+  - Active: scale(0.98), bg-primary-800
+  - Loading: Spinner + "Processing..."
+  - Disabled: bg-gray-300, cursor not-allowed
+- **Accessibility:**
+  - aria-label: "Continue to payment step"
+  - keyboard: Enter/Space to activate
+
+---
+
+### Interaction Specifications
+
+**Auto-fill Behavior:**
+1. **On Load:** Check for browser auto-fill data
+2. **If Available:** Populate fields, show "Auto-filled from browser" badge
+3. **Validation:** Run validation after 500ms delay
+4. **Focus:** Move focus to first empty required field
+
+**Real-time Validation:**
+- **Email:** Validate format on blur (not while typing)
+- **Address:** Validate via Google Places API on blur
+- **ZIP:** Validate against USPS database (async)
+
+**Navigation:**
+- **Back Button:** Save form state to sessionStorage, navigate to cart
+- **Continue:** Validate all fields → POST to /api/checkout/shipping → Navigate to payment on success
+
+---
+
+### Responsive Behavior
+
+**Mobile (375px):**
+- Single column, 16px padding
+- Full-width inputs and buttons
+- Sticky CTA at bottom (safe area inset)
+
+**Tablet (768px):**
+- Max-width 480px, centered
+- Same layout, larger touch targets (60px)
+
+**Desktop (1024px+):**
+- Split view: Form left (60%), Order summary right (40%)
+- Floating CTA (not sticky)
+Capability 4: Accessibility Specification
+What it does:
+Ensures WCAG 2.1 AA compliance
+Designs for assistive technologies
+Creates accessible interaction patterns
+Documents accessibility features
+Python
+Copy
+class AccessibilitySpec:
+    """
+    Comprehensive accessibility specification
+    """
+    
+    wcag_level: Literal["A", "AA", "AAA"]
+    screen_reader_support: ScreenReaderSpec
+    keyboard_navigation: KeyboardSpec
+    visual_accessibility: VisualSpec
+    motor_accessibility: MotorSpec
+    cognitive_accessibility: CognitiveSpec
+    
+class ScreenReaderSpec:
+    landmarks: List[str]  # "banner", "main", "navigation"
+    headings: HeadingStructure
+    labels: List[str]  # All form labels
+    live_regions: List[str]  # Dynamic content announcements
+    alt_text: Dict[str, str]  # Image descriptions
+    
+class KeyboardSpec:
+    tab_order: List[str]  # Element IDs in tab order
+    shortcuts: List[Shortcut]
+    focus_visible: bool
+    skip_links: List[str]
+Example Output:
+Markdown
+Fullscreen 
+Download 
+Fit
+Code
+Preview
+ 1.1.1 Non-text Content: All icons have aria-label or hidden
+ 1.3.1 Info and Relationships: Form labels programmatically associated
+ 1.4.3 Contrast: 4.5:1 minimum for all text (tested: 7.2:1 average)
+ 1.4.4 Resize Text: 200% zoom supported without horizontal scroll
+ 1.4.10 Reflow: Mobile layout works at 320px width
+ 1.4.11 Non-text Contrast: UI components have 3:1 contrast ratio
+ 1.4.12 Text Spacing: Line height 1.5, paragraph spacing 2x supported
+ 2.1.1 Keyboard: All functionality available via keyboard
+ 2.1.2 No Keyboard Trap: Focus never trapped in modal/section
+ 2.4.3 Focus Order: Logical tab order (top-to-bottom, left-to-right)
+ 2.4.7 Focus Visible: 2px solid outline on focus (offset 2px)
+ 2.5.5 Target Size: All touch targets minimum 44×44px (actual: 56px)
+ 2.5.6 Concurrent Input: Touch, mouse, keyboard all supported
+ 3.1.1 Language: HTML lang="en" declared
+ 3.2.1 On Focus: Focus doesn't trigger context change
+ 3.2.2 On Input: Input validation on blur, not on input
+ 3.3.1 Error Identification: Errors identified in text + icon
+ 3.3.2 Labels: All inputs have visible labels (not placeholder only)
+ 3.3.3 Error Suggestion: Specific correction suggestions provided
+ 4.1.1 Parsing: Valid HTML5, no duplicate IDs
+ 4.1.2 Name, Role, Value: All components have accessible names
+WCAG 2.1 AA Compliance Checklist
+Screen Reader Experience
+ACCESSIBILITY SPECIFICATION: Checkout Flow
+"Checkout: Shipping Information, Step 1 of 2.
+Form: Email address, required, edit text.
+Shipping address, required.
+Progress: 50 percent."
+plain
+Copy
+
+**Form Navigation:**
+- Tab: Move between fields
+- Arrow keys: Navigate radio buttons
+- Space: Select radio option
+- Enter: Submit form (when on CTA)
+
+**Error Announcement:**
+"Error: Please enter a valid email address.
+Example: name@example.com"
+plain
+Copy
+- Live region: aria-live="polite"
+- Focus: Moved to first error field
+
+**Success Feedback:**
+"Shipping information saved.
+Proceeding to payment. Step 2 of 2."
+plain
+Copy
+
+---
+
+### Keyboard Shortcuts
+
+| Key | Action | Context |
+|-----|--------|---------|
+| Tab | Next field | Global |
+| Shift+Tab | Previous field | Global |
+| Space | Select/Activate | Buttons, radios, checkboxes |
+| Enter | Submit form | Forms |
+| Esc | Close modal | Modals only |
+| Alt+1 | Skip to main content | Global |
+
+---
+
+### Focus Management
+
+**Focus Order:**
+1. Skip to main content link (hidden until Tab)
+2. Back button
+3. Progress indicator (read-only, focusable)
+4. Email input
+5. Address line 1
+6. Address line 2
+7. City
+8. State (dropdown)
+9. ZIP
+10. Shipping method radios
+11. Continue button
+
+**Focus Traps:**
+- None in this flow (no modals)
+- If error modal appears: Focus trapped until dismissed
+
+**Focus Indicators:**
+- Default: Browser outline (preserved)
+- Enhanced: 2px solid #2563eb, offset 2px
+- High contrast mode: 3px solid currentColor
+Capability 5: Design Rationale Documentation
+What it does:
+Explains every design decision
+References data, research, best practices
+Creates audit trail of choices
+Enables stakeholder alignment
+Python
+Copy
+class DesignDecision:
+    """
+    Documented design decision with rationale
+    """
+    
+    decision: str  # What we decided
+    alternatives: List[str]  # What we rejected
+    rationale: str  # Why this choice
+    evidence: List[str]  # Data, research, examples
+    trade_offs: List[TradeOff]
+    confidence: float  # 0.0-1.0
+    
+class TradeOff:
+    benefit: str
+    cost: str
+    mitigation: Optional[str>
+Example Output:
+Markdown
+Fullscreen 
+Download 
+Fit
+Code
+Preview
+1. Sign In primary (Amazon model) - Rejected
+2. Equal prominence (50/50 split) - Rejected
+3. Guest primary (Apple model) - Selected
+Data Agent found new mobile users 3x more likely to abandon (45% vs 20%)
+Mobile Maria persona: "I don't want to create an account just to buy"
+Industry trend: Guest checkout reduces friction 20-30% (Baymard Institute)
+Competitive: Apple, Nike, Target all use guest-first for mobile
+Data Agent: Segment analysis showing new user abandonment
+Baymard Institute: "Forced account creation is the #2 reason for abandonment"
+User persona: Mobile Maria's frustration with forced signup
+Benefit: +15-20% conversion on new users (estimated $25K/month)
+Cost: Lower account creation rate (may reduce long-term LTV)
+Mitigation: Post-purchase account creation with incentive (10% off next order)
+Decision 1: Guest Checkout as Primary CTA
+1. Multi-column (side-by-side fields) - Rejected
+2. Single-column (vertical stack) - Selected
+Mobile constraint: Screen width 375px, side-by-side fields too narrow
+Eye tracking: Single column 0.5s faster completion (NN/g research)
+Error reduction: Linear flow reduces skipped fields
+Accessibility: Screen reader linear navigation matches visual flow
+NN/g Group: "Web Form Design: Filling in the Blanks" - single column 15% faster
+Data Agent: Mobile users 65% more likely to abandon (complexity factor)
+WCAG: Linear flow meets 1.3.2 Meaningful Sequence
+Benefit: Faster completion, fewer errors, better mobile experience
+Cost: Longer scroll on desktop (acceptable)
+Mitigation: Sticky progress indicator, collapsible sections
+Decision 2: Single-Column Form Layout
+1. Card entry first (traditional) - Rejected
+2. Wallets first (modern) - Selected
+Mobile Maria persona: Uses Apple Pay for 80% of mobile purchases
+Speed: Apple Pay checkout 60% faster than card entry (Apple data)
+Security: Users trust Apple/Google more than merchant with card data
+Data Agent: Mobile form abandonment high (avoid typing on small screens)
+Apple: Apple Pay conversion 2x higher than card (industry benchmark)
+Data Agent: Mobile abandonment correlates with form complexity (r=0.72)
+Persona: Mobile Maria's preference for convenience
+Benefit: Faster checkout, higher conversion, trust signal
+Cost: 2-3% Apple fee (vs 2.9% + 30¢ Stripe for cards - actually cheaper)
+Mitigation: None needed (cost neutral or better)
+Decision 3: Apple Pay/Google Pay Prominence
+DESIGN DECISIONS LOG
+3.4 UI/UX Agent Deliverables
+Python
+Copy
+class DesignDeliverable:
+    """
+    Complete design specification package
+    """
+    
+    # Core documents
+    design_system: DesignSystem
+    user_flows: List[UserFlow>
+    screens: List<Screen>
+    component_library: List<Component>
+    
+    # Specifications
+    accessibility_audit: AccessibilitySpec
+    responsive_specs: ResponsiveSpecs
+    interaction_specs: InteractionSpecs
+    
+    # Assets
+    wireframes: List<Wireframe>  # Low fidelity
+    mockups: List<Mockup>  # High fidelity
+    prototypes: List<Prototype>  # Clickable
+    
+    # Documentation
+    design_rationale: List<DesignDecision>
+    developer_handoff: DeveloperHandoff
+    design_tokens_file: str  # JSON/CSS export
+    
+    # References
+    prd_ref: str  # Link to PRD Agent output
+    data_insights: List[str]  # Data Agent findings that influenced design
+    
+    # Quality metrics
+    wcag_compliance_level: str  # "AA" or "AAA"
+    estimated_development_time: str  # "3 sprints"
+    design_system_coverage: float  # % of components from existing system
+
+class DeveloperHandoff:
+    """
+    Developer-ready specifications
+    """
+    
+    redlines: List<Redline>  # Measurements
+    assets: List<Asset>  # Icons, images, fonts
+    css_snippets: List[str]  # Ready-to-use CSS
+    react_components: List[str]  # If using React
+    animation_specs: List<AnimationSpec>
+    edge_cases: List[str]  # "What if user has 50 items in cart?"
+3.5 User Interaction Flow
+Scenario: Complete Design Generation
+plaintext
+Copy
+USER: "Create the full UI/UX design for the mobile checkout PRD"
+
+UI/UX AGENT: I'll create comprehensive design specifications based on the PRD. 
+This includes design system, user flows, screen designs, and accessibility specs.
+
+[ANALYZING... 10 seconds]
+├─ Reading PRD: Guest checkout, 2-step flow, shipping calculator
+├─ Analyzing Data Agent insights: 35% mobile abandonment, form complexity issue
+├─ Reviewing personas: Mobile Maria (iPhone, Apple Pay user)
+└─ Checking constraints: Must be WCAG AA, mobile-first
+
+[DESIGNING SYSTEM... 20 seconds]
+├─ Creating color palette: Primary blue #2563eb (trust), semantic colors
+├─ Typography: System fonts for performance, 6-size scale
+├─ Spacing: 8px base grid, 9-step scale
+├─ Components: Button, Input, Radio, Stepper, Progress
+└─ Tokens exported: JSON, CSS variables
+
+[MAPPING FLOWS... 15 seconds]
+├─ Entry: Product page → Cart → Checkout
+├─ Step 1: Shipping (email, address, method)
+├─ Step 2: Payment (wallets, card, review)
+├─ Exit: Confirmation + post-purchase account creation
+└─ Error paths: Validation, payment failure, timeout
+
+[DESIGNING SCREENS... 45 seconds]
+├─ SCR-001: Checkout Entry (guest vs sign-in)
+├─ SCR-002: Shipping Information (form, auto-fill)
+├─ SCR-003: Payment Selection (Apple Pay, card)
+├─ SCR-004: Order Review (summary, confirm)
+├─ SCR-005: Confirmation (success, next steps)
+└─ Error states: Validation, decline, empty cart
+
+[SPECIFYING ACCESSIBILITY... 15 seconds]
+├─ WCAG 2.1 AA checklist: All 50 criteria met
+├─ Screen reader: Tested with VoiceOver, NVDA
+├─ Keyboard: Tab order, shortcuts, focus management
+└─ Visual: Contrast ratios, text resizing, color independence
+
+[DOCUMENTING RATIONALE... 10 seconds]
+├─ Decision 1: Guest primary CTA (85% confidence)
+├─ Decision 2: Single-column layout (95% confidence)
+├─ Decision 3: Wallets first (90% confidence)
+└─ Trade-offs documented with mitigations
+
+✅ Design Package Complete: 5 screens, 12 components, full specs
+
+═══════════════════════════════════════════════════
+UI/UX DELIVERABLE: MOBILE CHECKOUT REDESIGN
+═══════════════════════════════════════════════════
+
+[Design System Overview]
+[User Flow Diagram]
+[Screen Specifications]
+[Accessibility Audit]
+[Developer Handoff]
+
+[View Interactive Prototype] [Export to Figma] [Export to Zeplin]
+[Generate React Components?] [Request Design Review?]
+4. AGENT COLLABORATION & INTEGRATION
+4.1 Data Flow Between Agents
+Python
+Copy
+class AgentOrchestration:
+    """
+    How agents pass work to each other
+    """
+    
+    # Data Agent → PRD Agent
+    data_to_prd: DataHandoff = {
+        "trigger": "Data analysis complete",
+        "deliverable": "DataResearchReport",
+        "key_fields": [
+            "hypothesis",
+            "confidence_score", 
+            "supporting_evidence",
+            "recommended_next_steps"
+        ],
+        "prd_action": "Synthesize research into product strategy"
+    }
+    
+    # PRD Agent → UI/UX Agent  
+    prd_to_design: PRDHandoff = {
+        "trigger": "PRD approved",
+        "deliverable": "PRDDocument",
+        "key_sections": [
+            "user_personas",
+            "user_stories",
+            "functional_requirements",
+            "success_metrics"
+        ],
+        "design_action": "Create visual solutions for requirements"
+    }
+    
+    # UI/UX Agent → (Future: Frontend Agent)
+    design_to_frontend: DesignHandoff = {
+        "trigger": "Design specs complete",
+        "deliverable": "DesignDeliverable",
+        "key_assets": [
+            "design_tokens",
+            "component_library",
+            "screen_specifications",
+            "accessibility_specs"
+        ],
+        "frontend_action": "Implement designs in code"
+    }
+4.2 Shared Context & Memory
+Python
+Copy
+class SharedProjectContext:
+    """
+    Context shared across all agents in a project
+    """
+    
+    project_id: str
+    project_name: str
+    original_goal: str  # User's initial request
+    
+    # Accumulated knowledge
+    data_findings: DataResearchReport
+    product_strategy: PRDDocument  
+    design_specs: DesignDeliverable
+    
+    # User preferences
+    brand_guidelines: Optional[BrandGuidelines]
+    tech_stack: Optional[TechStack]
+    constraints: List[str]  # Budget, timeline, compliance
+    
+    # Decisions log
+    key_decisions: List[Decision]  # With rationale
+    
+    # Mode
+    mode: Literal["real", "demo"]  # Data sources available
+5. USER INTERACTION SUMMARY
+5.1 How Users Engage Each Agent
+Table
+Copy
+Agent	User Trigger	Input	Output	Typical Duration
+Data Agent	"Analyze why..." "Find data on..."	Question/hypothesis	Research report with evidence	30-60s
+PRD Agent	"Create PRD for..." "Design solution for..."	Data findings + goal	Full PRD document	60-90s
+UI/UX Agent	"Design the UI..." "Create mockups..."	PRD + constraints	Design system + screens	90-120s
+5.2 Full Workflow Example
+plaintext
+Copy
+USER: "I need to fix our mobile checkout. It's losing us money."
+
+DATA AGENT: [Analyzes data, finds 35% abandonment, shipping surprise cause]
+→ "Mobile checkout abandonment is 35%, costing $45K/month. Primary cause: 
+    unexpected shipping costs at checkout."
+
+USER: "Create a product plan to fix this."
+
+PRD AGENT: [Creates full PRD with guest checkout, transparent pricing]
+→ "PRD complete: 8 sections, 3-phase rollout, target 8% conversion."
+
+USER: "Design the actual screens."
+
+UI/UX AGENT: [Creates design system, 5 screens, full accessibility specs]
+→ "Design package ready: Mobile-first, WCAG AA, Apple Pay integration."
+
+USER: "Proceed to development." [Future: Frontend Agent]
+This completes the full specifications for all 3 agents with every minute detail you requested. Each agent has:
+Deep identity and philosophy
+Detailed capabilities with code implementations
+Complete user interaction examples
+Structured deliverables
+Integration points with other agents
+The system is designed to work sequentially (Data → PRD → UI/UX) or individually, with comprehensive handoffs between agents.

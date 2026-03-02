@@ -1,0 +1,42 @@
+# Testing Dependencies
+# Install with: pip install -r requirements-test.txt
+
+# Core Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+pytest-timeout==2.2.0
+pytest-xdist==3.5.0  # Parallel test execution
+
+# Test Utilities
+faker==22.0.0  # Generate fake data
+factory-boy==3.3.0  # Test fixtures
+freezegun==1.4.0  # Time travel
+responses==0.24.1  # Mock HTTP responses
+
+# API Testing
+httpx==0.25.2  # Async HTTP client
+fastapi[all]>=0.104.1  # For TestClient
+
+# Load Testing
+locust==2.20.0  # Load testing
+k6==0.1.0  # Alternative load testing
+
+# Code Quality
+black==23.12.1  # Code formatting
+isort==5.13.2  # Import sorting
+flake8==6.1.0  # Linting
+mypy==1.7.1  # Type checking
+pylint==3.0.3  # Advanced linting
+
+# Security Testing
+bandit==1.7.6  # Security linting
+safety==2.3.5  # Dependency vulnerability check
+
+# Coverage
+coverage[toml]==7.3.4
+
+# Debugging
+pytest-watch==4.2.0  # Auto-run tests on changes
+ipdb==0.13.13  # Better debugger
