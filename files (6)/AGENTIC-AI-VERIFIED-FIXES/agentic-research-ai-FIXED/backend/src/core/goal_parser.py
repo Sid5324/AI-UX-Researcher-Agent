@@ -97,8 +97,8 @@ class GoalParser:
             # Add raw description
             mission_data["raw_description"] = description
             
-            # Validate and normalize
-            mission_data = self._validate_mission(mission_data)
+            # Validate and normalize (pass description for agent detection)
+            mission_data = self._validate_mission(mission_data, description)
             
             return ParsedGoal(mission_data)
             
@@ -150,7 +150,7 @@ Parse this into a comprehensive mission structure with JSON format:
         }}
     ],
     
-    "required_agents": ["data_agent", "prd_agent", "ui_ux_agent"],
+    "required_agents": ["data_agent", "prd_agent"],
     
     "autonomy_level": "supervised|partial|full (based on goal complexity and risk)",
     
@@ -187,10 +187,18 @@ IMPORTANT:
         
         return prompt
     
-    def _validate_mission(self, mission_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Validate and normalize mission data"""
+    def _validate_mission(self, mission_data: Dict[str, Any], description: str = "") -> Dict[str, Any]:
+        """
+        Validate and normalize mission data.
         
-        # Ensure required fields exist
+        FIXED: No longer overwrites required_agents with hardcoded default.
+        Now uses intelligent keyword-based agent detection as fallback.
+        """
+        
+        # CRITICAL FIX: Save LLM-provided agents before applying defaults
+        llm_agents = mission_data.get("required_agents", [])
+        
+        # Ensure required fields exist (without required_agents in defaults)
         defaults = {
             "intent": "Conduct research as requested",
             "goal_type": "general",
@@ -201,7 +209,7 @@ IMPORTANT:
                 "urgency": "medium",
             },
             "sub_goals": [],
-            "required_agents": ["data_agent"],
+            # FIXED: removed "required_agents" from defaults
             "autonomy_level": "supervised",
             "checkpoints": [],
             "risks": [],
@@ -210,10 +218,19 @@ IMPORTANT:
             "metadata": {},
         }
         
-        # Merge with defaults
+        # Merge with defaults (excluding required_agents)
         for key, default_value in defaults.items():
             if key not in mission_data or not mission_data[key]:
                 mission_data[key] = default_value
+        
+        # CRITICAL FIX: Smart agent determination
+        if not llm_agents or llm_agents == ["data_agent"]:
+            # LLM didn't provide agents or provided only default
+            # Use keyword-based detection
+            mission_data["required_agents"] = self._determine_agents_from_keywords(description)
+        else:
+            # Use LLM-provided agents
+            mission_data["required_agents"] = llm_agents
         
         # Normalize values
         if mission_data["estimated_duration_days"] < 1:
@@ -229,8 +246,64 @@ IMPORTANT:
         
         return mission_data
     
+    def _determine_agents_from_keywords(self, description: str) -> List[str]:
+        """
+        Determine required agents based on keywords in goal description.
+        
+        This is a fallback when LLM doesn't provide proper agent selection.
+        """
+        agents = ["data_agent"]  # Always include data agent as base
+        desc_lower = description.lower()
+        
+        # Check for PRD keywords
+        prd_keywords = ["prd", "requirements", "product strategy", "roadmap", 
+                       "product requirements", "feature spec", "specification"]
+        if any(keyword in desc_lower for keyword in prd_keywords):
+            agents.append("prd_agent")
+        
+        # Check for UI/UX keywords
+        design_keywords = ["ui", "ux", "design", "mockup", "wireframe", 
+                          "interface", "user experience", "user interface", 
+                          "visual design", "interaction design", "prototype"]
+        if any(keyword in desc_lower for keyword in design_keywords):
+            agents.append("ui_ux_agent")
+        
+        # Check for validation keywords
+        validation_keywords = ["validate", "test", "experiment", "a/b", 
+                              "statistical", "hypothesis", "verify", "significance"]
+        if any(keyword in desc_lower for keyword in validation_keywords):
+            agents.append("validation_agent")
+        
+        # Check for competitor keywords
+        competitor_keywords = ["competitor", "competitive", "market analysis", 
+                              "competitive landscape", "benchmark", "industry analysis"]
+        if any(keyword in desc_lower for keyword in competitor_keywords):
+            agents.append("competitor_agent")
+        
+        # Check for interview keywords
+        interview_keywords = ["interview", "user research", "qualitative", 
+                             "user interview", "talk to users", "customer research"]
+        if any(keyword in desc_lower for keyword in interview_keywords):
+            agents.append("interview_agent")
+        
+        # Check for feedback keywords
+        feedback_keywords = ["feedback", "reviews", "user comments", 
+                            "customer feedback", "user feedback", "satisfaction"]
+        if any(keyword in desc_lower for keyword in feedback_keywords):
+            agents.append("feedback_agent")
+        
+        print(f"✅ Goal Parser: Determined agents from keywords: {agents}")
+        return agents
+    
     def _create_fallback_mission(self, description: str) -> ParsedGoal:
-        """Create basic mission if parsing fails"""
+        """
+        Create basic mission if parsing fails.
+        
+        FIXED: Now uses keyword-based agent detection instead of hardcoded single agent.
+        """
+        
+        # Determine agents from keywords
+        agents = self._determine_agents_from_keywords(description)
         
         return ParsedGoal({
             "raw_description": description,
@@ -259,7 +332,7 @@ IMPORTANT:
                     "estimated_duration": 2,
                 },
             ],
-            "required_agents": ["data_agent"],
+            "required_agents": agents,  # FIXED: Uses keyword-detected agents
             "autonomy_level": "supervised",
             "checkpoints": [
                 {

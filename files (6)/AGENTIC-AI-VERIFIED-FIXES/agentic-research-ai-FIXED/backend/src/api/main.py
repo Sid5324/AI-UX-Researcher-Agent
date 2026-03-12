@@ -108,6 +108,7 @@ class CreateGoalRequest(BaseModel):
     description: str = Field(..., min_length=10, description="Goal description")
     budget_usd: Optional[float] = Field(None, ge=0, description="Budget in USD")
     timeline_days: Optional[int] = Field(None, ge=1, description="Timeline in days")
+    mode: Optional[str] = Field(None, description="'real' or 'demo' mode")
     metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 
@@ -200,7 +201,7 @@ async def create_goal(
     # Create goal in database
     goal = ResearchGoal(
         description=request.description,
-        mode=settings.app_mode,
+        mode=request.mode or settings.app_mode,
         budget_usd=request.budget_usd or parsed.estimated_cost_usd,
         timeline_days=request.timeline_days or parsed.estimated_duration_days,
         meta_data=request.metadata,
@@ -390,13 +391,12 @@ async def execute_goal(goal_id: str):
             result = await orchestrate_agents(session, goal, parsed)
             
             if result["success"]:
-                goal.status = "completed"
-                goal.progress_percent = 100.0
+                # Orchestrator already updated goal status and final_output
+                pass
             else:
                 goal.status = "failed"
                 goal.error_message = result.get("error")
-            
-            await session.commit()
+                await session.commit()
             
         except Exception as e:
             goal.status = "failed"

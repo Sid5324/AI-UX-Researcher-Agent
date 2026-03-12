@@ -14,49 +14,45 @@ import json
 class InterviewAgent(BaseAgent):
     """
     User Interview Agent - Qualitative research specialist.
-    
-    Capabilities:
-    - Generate interview scripts
-    - Create screener questions
-    - Recruit participants via User Interviews API
-    - Analyze transcripts
-    - Extract themes and insights
     """
-    
+
     agent_name = "interview_agent"
     agent_description = "Conducts user interviews and extracts qualitative insights"
     required_tools = ["user_interviews_api", "transcript_analyzer"]
-    
+
+    def __init__(self, session, goal):
+        super().__init__(session, goal)
+
     async def execute(self) -> Dict[str, Any]:
         """Main interview workflow."""
-        
+
         await self.update_progress("Planning interview study", 10)
-        
+
         # Step 1: Create interview script
         script = await self._generate_interview_script()
-        
+
         await self.update_progress("Creating screener", 25)
-        
+
         # Step 2: Create screener questions
         screener = await self._create_screener()
-        
+
         await self.update_progress("Recruiting participants", 40)
-        
+
         # Step 3: Recruit participants (simulated)
         recruitment = await self._recruit_participants(screener)
-        
+
         await self.update_progress("Analyzing responses", 70)
-        
+
         # Step 4: Analyze simulated responses
         analysis = await self._analyze_interviews()
-        
+
         await self.update_progress("Generating insights", 90)
-        
+
         # Step 5: Extract themes
         insights = await self._extract_insights(analysis)
-        
+
         await self.update_progress("Complete", 100)
-        
+
         return {
             "agent": self.agent_name,
             "interview_script": script,
@@ -65,12 +61,12 @@ class InterviewAgent(BaseAgent):
             "analysis": analysis,
             "insights": insights,
         }
-    
+
     async def _generate_interview_script(self) -> Dict[str, Any]:
         """Generate interview script based on research goal."""
-        
+
         ai_manager = get_ai_manager()
-        
+
         prompt = f"""
 Create a user interview script for this research goal:
 
@@ -92,7 +88,7 @@ Generate a structured interview guide in JSON format:
     "closing": "Thank you script"
 }}
 """
-        
+
         try:
             script = await ai_manager.generate_json(prompt=prompt)
             return script
@@ -108,7 +104,7 @@ Generate a structured interview guide in JSON format:
                         "questions": [
                             {
                                 "question": "Tell me about your experience with checkout flows",
-                                "follow_ups": ["What frustrates you?", "What works well?"]
+                                "follow_ups": ["What frustrates you?", "Why..."]
                             }
                         ]
                     },
@@ -124,12 +120,12 @@ Generate a structured interview guide in JSON format:
                 ],
                 "closing": "Thank you for your time!"
             }
-    
+
     async def _create_screener(self) -> Dict[str, Any]:
         """Create participant screener questions."""
-        
+
         ai_manager = get_ai_manager()
-        
+
         prompt = f"""
 Create screener questions to recruit participants for:
 
@@ -149,7 +145,7 @@ Generate JSON:
     "target_participants": 8
 }}
 """
-        
+
         try:
             screener = await ai_manager.generate_json(prompt=prompt)
             return screener
@@ -178,10 +174,10 @@ Generate JSON:
                 ],
                 "target_participants": 8
             }
-    
+
     async def _recruit_participants(self, screener: Dict) -> Dict[str, Any]:
         """Recruit participants (simulated for demo mode)."""
-        
+
         if self.goal.mode == "demo":
             # Simulated recruitment
             return {
@@ -203,10 +199,10 @@ Generate JSON:
                 "incentive_cents": 7500,  # $75
             })
             return result
-    
+
     async def _analyze_interviews(self) -> Dict[str, Any]:
         """Analyze interview transcripts (simulated responses)."""
-        
+
         # Simulated responses for demo
         simulated_responses = [
             {
@@ -237,37 +233,37 @@ Generate JSON:
                 "themes": ["Transparency", "Guest checkout", "Performance"]
             }
         ]
-        
+
         return {
             "interviews_analyzed": len(simulated_responses),
             "responses": simulated_responses,
         }
-    
+
     async def _extract_insights(self, analysis: Dict) -> Dict[str, Any]:
         """Extract themes and insights from responses."""
-        
+
         ai_manager = get_ai_manager()
-        
+
         # Aggregate themes
         all_themes = []
         all_quotes = []
-        
+
         for response in analysis.get("responses", []):
             all_themes.extend(response.get("themes", []))
             all_quotes.extend(response.get("key_quotes", []))
-        
+
         # Count theme frequency
         theme_counts = {}
         for theme in all_themes:
             theme_counts[theme] = theme_counts.get(theme, 0) + 1
-        
+
         # Sort by frequency
         top_themes = sorted(
             theme_counts.items(),
             key=lambda x: x[1],
             reverse=True
         )[:5]
-        
+
         prompt = f"""
 Analyze these interview themes and quotes to generate insights:
 
@@ -289,7 +285,7 @@ Generate insights in JSON:
     ]
 }}
 """
-        
+
         try:
             insights = await ai_manager.generate_json(prompt=prompt)
             return insights

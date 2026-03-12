@@ -278,6 +278,25 @@ class EmailTool(BaseTool):
         }
 
 
+class GenericTool(BaseTool):
+    """Generic tool for rapid registration of simulated tools"""
+    
+    def __init__(self, name: str, description: str, category: ToolCategory):
+        super().__init__()
+        self.name = name
+        self.description = description
+        self.category = category
+        
+    async def execute(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Simulated execution"""
+        return {
+            "tool": self.name,
+            "params": params,
+            "status": "simulated_success",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+
 # =====================
 # Tool Registry
 # =====================
@@ -301,6 +320,25 @@ class ToolRegistry:
         self.register(WebScraperTool())
         self.register(CSVAnalyzerTool())
         self.register(EmailTool())
+        
+        # Validation Tools
+        self.register(GenericTool("statistical_test", "Run statistical tests", ToolCategory.VALIDATION))
+        self.register(GenericTool("sample_size_calculator", "Calculate sample sizes", ToolCategory.VALIDATION))
+        self.register(GenericTool("effect_size_calculator", "Calculate effect sizes", ToolCategory.VALIDATION))
+        
+        # Competitor Tools
+        self.register(GenericTool("competitor_scraper", "Scrape competitor data", ToolCategory.RESEARCH))
+        self.register(GenericTool("market_analyzer", "Analyze market trends", ToolCategory.RESEARCH))
+        
+        # Interview Tools
+        self.register(GenericTool("user_interviews_api", "Connect to User Interviews API", ToolCategory.COMMUNICATION))
+        self.register(GenericTool("transcript_analyzer", "Analyze interview transcripts", ToolCategory.ANALYTICS))
+        
+        # Feedback Tools
+        self.register(GenericTool("sentiment_analyzer", "Analyze text sentiment", ToolCategory.ANALYTICS))
+        self.register(GenericTool("text_classifier", "Classify feedback text", ToolCategory.ANALYTICS))
+        self.register(GenericTool("zendesk_api", "Connect to Zendesk API", ToolCategory.DATA_GATHERING))
+        self.register(GenericTool("app_store_scraper", "Scrape App Store reviews", ToolCategory.DATA_GATHERING))
     
     def register(self, tool: BaseTool) -> None:
         """Register a new tool"""

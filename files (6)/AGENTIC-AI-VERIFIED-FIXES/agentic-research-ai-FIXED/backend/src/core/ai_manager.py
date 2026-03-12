@@ -69,25 +69,24 @@ class AIManager:
         Returns:
             Dict with 'content', 'model', 'cost', 'provider'
         """
-        # Try Ollama first (local, free)
-        if await self.check_ollama_health():
+        # Try Groq first (extremely fast, free tier)
+        if settings.groq_api_key:
             try:
-                result = await self._generate_ollama(
+                result = await self._generate_groq(
                     prompt=prompt,
                     system=system,
-                    model=model or settings.ollama_model,
+                    model=model or "llama-3.3-70b-versatile",
                     temperature=temperature,
                     max_tokens=max_tokens,
                     json_mode=json_mode,
                 )
                 return result
             except Exception as e:
-                print(f"Warning: Ollama failed: {e}, trying fallback...")
-        
-        # Fallback to cloud APIs
+                print(f"Warning: Groq failed: {e}, trying fallback...")
+                
+        # Fallback to OpenRouter (free tier models)
         should_try_openrouter = bool(settings.openrouter_api_key)
         if not should_try_openrouter:
-            # Allow patched/mocked fallback path during tests.
             bound = getattr(self._generate_openrouter, "__func__", None)
             should_try_openrouter = bound is not AIManager._generate_openrouter
         
@@ -117,12 +116,25 @@ class AIManager:
                 return result
             except Exception as e:
                 print(f"Warning: Gemini failed: {e}")
+                
+        # Optional Local Fallback
+        if await self.check_ollama_health():
+            try:
+                result = await self._generate_ollama(
+                    prompt=prompt,
+                    system=system,
+                    model=settings.ollama_model,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    json_mode=json_mode,
+                )
+                return result
+            except Exception as e:
+                print(f"Warning: Ollama failed: {e}")
         
         # All providers failed
         raise Exception(
-            "All AI providers unavailable. Please check:\n"
-            "1. Ollama is running (http://localhost:11434)\n"
-            "2. API keys are configured (OpenRouter, Gemini, etc.)"
+            "All AI providers unavailable. Please check API keys (Groq, OpenRouter, Gemini)."
         )
     
     # =====================
@@ -223,6 +235,62 @@ class AIManager:
                 
                 return has_model
     
+    # =====================
+    # Groq Implementation
+    # =====================
+    
+    async def _generate_groq(
+        self,
+        prompt: str,
+        system: Optional[str],
+        model: str,
+        temperature: float,
+        max_tokens: int,
+        json_mode: bool,
+    ) -> Dict[str, Any]:
+        """Generate using Groq API"""
+        
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+        
+        payload = {
+            "model": model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+        
+        if json_mode:
+            payload["response_format"] = {"type": "json_object"}
+        
+        headers = {
+            "Authorization": f"Bearer {settings.groq_api_key}",
+            "Content-Type": "application/json",
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=payload, headers=headers) as response:
+                if response.status != 200:
+                    text = await response.text()
+                    raise Exception(f"Groq error: {response.status} - {text}")
+                
+                data = await response.json()
+                
+                return {
+                    "content": data["choices"][0]["message"]["content"],
+                    "model": model,
+                    "provider": "groq",
+                    "cost": 0.0, # mostly free tier
+                    "tokens": {
+                        "prompt": data["usage"]["prompt_tokens"],
+                        "completion": data["usage"]["completion_tokens"],
+                    }
+                }
+
     # =====================
     # OpenRouter Implementation
     # =====================
@@ -344,6 +412,14 @@ class AIManager:
         
         models = []
         
+        # Groq models
+        if settings.groq_api_key:
+            models.extend([
+                {"name": "llama-3.3-70b-versatile", "provider": "groq", "cost": "free (rate limited)", "available": True},
+                {"name": "mixtral-8x7b-32768", "provider": "groq", "cost": "free (rate limited)", "available": True},
+                {"name": "gemma2-9b-it", "provider": "groq", "cost": "free (rate limited)", "available": True},
+            ])
+            
         # Ollama models
         if await self.check_ollama_health():
             cached = self.health_cache.get("ollama", {})
@@ -384,10 +460,19 @@ class AIManager:
         prompt: str,
         system: Optional[str] = None,
         model: Optional[str] = None,
+        temperature: float = 0.7,  # ADDED: Temperature parameter
     ) -> Dict[str, Any]:
         """
         Generate JSON output (convenience method).
         
+        FIXED: Added temperature parameter for better control.
+        
+        Args:
+            prompt: Generation prompt
+            system: System message
+            model: Model to use
+            temperature: Sampling temperature (0.0-1.0). Lower = more deterministic
+            
         Returns:
             Parsed JSON dict
         """
@@ -396,6 +481,7 @@ class AIManager:
             system=system,
             model=model,
             json_mode=True,
+            temperature=temperature,  # PASS THROUGH
         )
         
         content = result["content"]

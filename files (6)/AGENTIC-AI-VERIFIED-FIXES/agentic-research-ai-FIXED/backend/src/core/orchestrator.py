@@ -20,6 +20,18 @@ from src.database.session import AsyncSession
 from src.agents.base import BaseAgent
 from src.core.goal_parser import ParsedGoal
 
+# WebSocket manager for real-time updates
+# Import lazily to avoid circular imports
+manager = None
+
+def get_manager():
+    global manager
+    if manager is None:
+        # Import here to avoid circular imports
+        from src.api.main import manager as ws_manager
+        manager = ws_manager
+    return manager
+
 
 settings = get_settings()
 
@@ -83,6 +95,10 @@ class SharedProjectContext:
         self.data_findings: Optional[Dict[str, Any]] = None
         self.product_strategy: Optional[Dict[str, Any]] = None
         self.design_specs: Optional[Dict[str, Any]] = None
+        self.validation_results: List[Dict[str, Any]] = []
+        self.competitor_analysis: Optional[Dict[str, Any]] = None
+        self.interview_insights: List[Dict[str, Any]] = []
+        self.feedback_analysis: Optional[Dict[str, Any]] = None
         
         # User preferences
         self.brand_guidelines: Optional[Dict[str, Any]] = None
@@ -125,14 +141,20 @@ class SharedProjectContext:
         }
         
         # Add previous agent outputs
-        if agent_name == constants.AGENT_PRD and self.data_findings:
+        if self.data_findings:
             context["data_findings"] = self.data_findings
-        
-        elif agent_name == constants.AGENT_UIUX:
-            if self.data_findings:
-                context["data_findings"] = self.data_findings
-            if self.product_strategy:
-                context["product_strategy"] = self.product_strategy
+        if self.product_strategy:
+            context["product_strategy"] = self.product_strategy
+        if self.design_specs:
+            context["design_specs"] = self.design_specs
+        if self.competitor_analysis:
+            context["competitor_analysis"] = self.competitor_analysis
+        if self.interview_insights:
+            context["interview_insights"] = self.interview_insights
+        if self.feedback_analysis:
+            context["feedback_analysis"] = self.feedback_analysis
+        if self.validation_results:
+            context["validation_results"] = self.validation_results
         
         return context
 
@@ -188,17 +210,45 @@ class MultiAgentOrchestrator:
             else:
                 results = await self._execute_conditional()
             
+            if self.goal.status == "failed":
+                return {
+                    "success": False,
+                    "error": self.goal.error_message,
+                }
+
             # Mark goal as complete
             self.goal.status = "completed"
             self.goal.progress_percent = 100.0
+            self.goal.findings = self.context.data_findings
             self.goal.final_output = {
                 "data_findings": self.context.data_findings,
                 "product_strategy": self.context.product_strategy,
                 "design_specs": self.context.design_specs,
+                "validation_results": self.context.validation_results,
+                "competitor_analysis": self.context.competitor_analysis,
+                "interview_insights": self.context.interview_insights,
+                "feedback_analysis": self.context.feedback_analysis,
                 "decisions": self.context.decisions,
             }
             
             await self.session.commit()
+            
+            # Create final checkpoint
+            await self._create_checkpoint(
+                agent_name="orchestrator",
+                checkpoint_type="goal_complete",
+                title="Goal completed successfully",
+                description=f"All agents executed: {', '.join([r['agent'] for r in results])}",
+            )
+            
+            # Send final WebSocket update
+            await self._send_websocket_update({
+                "type": "goal_completed",
+                "goal_id": self.goal.id,
+                "status": "completed",
+                "progress_percent": 100,
+                "final_output": self.goal.final_output,
+            })
             
             return {
                 "success": True,
@@ -222,33 +272,151 @@ class MultiAgentOrchestrator:
     # =====================
     
     async def _execute_sequential(self) -> List[Dict[str, Any]]:
-        """Execute agents one after another"""
-        results = []
+        """
+        Execute agents one after another with comprehensive WebSocket events.
         
-        for agent_name in self.agent_sequence:
-            # Update goal status
-            self.goal.current_agent = agent_name
-            await self.session.commit()
+        FIXED: Added 7 event types:
+        - goal_started
+        - agent_started
+        - progress_update
+        - agent_completed
+        - agent_failed
+        - goal_completed
+        - goal_failed
+        """
+        results = []
+        total_agents = len(self.agent_sequence)
+        
+        # FIXED: Send goal_started event
+        await self._send_websocket_update({
+            "type": "goal_started",
+            "goal_id": str(self.goal.id),
+            "total_agents": total_agents,
+            "agents": self.agent_sequence,
+            "timestamp": datetime.utcnow().isoformat(),
+        })
+        
+        for idx, agent_name in enumerate(self.agent_sequence):
+            try:
+                # Update goal status
+                self.goal.current_agent = agent_name
+                await self.session.commit()
+                
+                # Send progress update at start
+                progress_start = (idx / total_agents) * 100
+                await self._notify_progress(progress_start, agent_name, idx + 1, total_agents)
+                
+                # Notify agent started with enhanced info
+                await self._notify_agent_started(agent_name, idx + 1, total_agents)
+                
+                # Create agent
+                agent = await self._create_agent(agent_name)
+                
+                # Execute agent with timing
+                start_time = datetime.utcnow()
+                result = await agent.run()
+                end_time = datetime.utcnow()
+                duration = (end_time - start_time).total_seconds()
+                
+                results.append(result)
+                
+                if not result["success"]:
+                    # FIXED: Send agent_failed event
+                    await self._send_websocket_update({
+                        "type": "agent_failed",
+                        "goal_id": str(self.goal.id),
+                        "agent": agent_name,
+                        "agent_index": idx + 1,
+                        "total_agents": total_agents,
+                        "error": result.get("error", "Unknown error"),
+                        "timestamp": datetime.utcnow().isoformat(),
+                    })
+                    
+                    # FIXED: Send goal_failed event
+                    await self._send_websocket_update({
+                        "type": "goal_failed",
+                        "goal_id": str(self.goal.id),
+                        "failed_agent": agent_name,
+                        "error": result.get("error", "Unknown error"),
+                        "completed_agents": idx,
+                        "total_agents": total_agents,
+                        "timestamp": datetime.utcnow().isoformat(),
+                    })
+                    
+                    # Update goal status to failed
+                    self.goal.status = "failed"
+                    self.goal.error_message = f"Agent {agent_name} failed: {result.get('error', 'Unknown error')}"
+                    await self.session.commit()
+                    
+                    break
+                
+                # Notify agent completed with enhanced info
+                await self._notify_agent_completed(
+                    agent_name, 
+                    result["success"], 
+                    result.get("output"),
+                    idx + 1,
+                    total_agents,
+                    duration
+                )
+                
+                # Store agent output in context
+                await self._store_agent_output(agent_name, result["output"])
+                
+                # Create checkpoint for completed agent
+                await self._create_checkpoint(
+                    agent_name=agent_name,
+                    checkpoint_type="agent_complete",
+                    title=f"{agent_name} completed",
+                    description=f"Agent {agent_name} finished successfully",
+                )
+                
+                # Create handoff to next agent (if exists)
+                if idx < len(self.agent_sequence) - 1:
+                    next_agent = self.agent_sequence[idx + 1]
+                    handoff = self._create_handoff(agent_name, next_agent, result["output"])
+                    self.context.add_handoff(handoff)
+                    
+                    # FIXED: Send handoff event
+                    await self._send_websocket_update({
+                        "type": "agent_handoff",
+                        "goal_id": str(self.goal.id),
+                        "from_agent": agent_name,
+                        "to_agent": next_agent,
+                        "timestamp": datetime.utcnow().isoformat(),
+                    })
             
-            # Create agent
-            agent = await self._create_agent(agent_name)
-            
-            # Execute agent
-            result = await agent.run()
-            results.append(result)
-            
-            if not result["success"]:
-                # Agent failed, stop execution
+            except Exception as e:
+                # FIXED: Send agent_error event for exceptions
+                await self._send_websocket_update({
+                    "type": "agent_error",
+                    "goal_id": str(self.goal.id),
+                    "agent": agent_name,
+                    "agent_index": idx + 1,
+                    "total_agents": total_agents,
+                    "error": str(e),
+                    "timestamp": datetime.utcnow().isoformat(),
+                })
+                
+                # Update goal status to failed
+                self.goal.status = "failed"
+                self.goal.error_message = f"Agent {agent_name} error: {str(e)}"
+                await self.session.commit()
+                
                 break
-            
-            # Store agent output in context
-            await self._store_agent_output(agent_name, result["output"])
-            
-            # Create handoff to next agent (if exists)
-            if self.agent_sequence.index(agent_name) < len(self.agent_sequence) - 1:
-                next_agent = self.agent_sequence[self.agent_sequence.index(agent_name) + 1]
-                handoff = self._create_handoff(agent_name, next_agent, result["output"])
-                self.context.add_handoff(handoff)
+        
+        # Final progress update
+        await self._notify_progress(100, "complete", total_agents, total_agents)
+        
+        # FIXED: Send goal_completed event if all agents succeeded
+        if len(results) == total_agents and all(r.get("success", False) for r in results):
+            await self._send_websocket_update({
+                "type": "goal_completed",
+                "goal_id": str(self.goal.id),
+                "total_agents": total_agents,
+                "completed_agents": len(results),
+                "timestamp": datetime.utcnow().isoformat(),
+            })
         
         return results
     
@@ -306,7 +474,11 @@ class MultiAgentOrchestrator:
     # =====================
     
     async def _create_agent(self, agent_name: str) -> BaseAgent:
-        """Create agent instance with context"""
+        """
+        Create agent instance with context.
+        
+        FIXED: Added all 7 agents - data, prd, ui_ux, validation, competitor, interview, feedback
+        """
         # Get agent context
         agent_context = self.context.get_context_for_agent(agent_name)
         
@@ -323,6 +495,26 @@ class MultiAgentOrchestrator:
             from src.agents.ui_ux.agent import UIUXAgent
             agent = UIUXAgent(self.session, self.goal)
         
+        # FIXED: Added Validation Agent
+        elif agent_name == constants.AGENT_VALIDATION:
+            from src.agents.validation.agent import ValidationAgent
+            agent = ValidationAgent(self.session, self.goal)
+        
+        # FIXED: Added Competitor Agent
+        elif agent_name == constants.AGENT_COMPETITOR:
+            from src.agents.competitor.agent import CompetitorAgent
+            agent = CompetitorAgent(self.session, self.goal)
+        
+        # FIXED: Added Interview Agent
+        elif agent_name == constants.AGENT_INTERVIEW:
+            from src.agents.interview.agent import InterviewAgent
+            agent = InterviewAgent(self.session, self.goal)
+        
+        # FIXED: Added Feedback Agent
+        elif agent_name == constants.AGENT_FEEDBACK:
+            from src.agents.feedback.agent import FeedbackAgent
+            agent = FeedbackAgent(self.session, self.goal)
+        
         else:
             raise ValueError(f"Unknown agent: {agent_name}")
         
@@ -336,7 +528,11 @@ class MultiAgentOrchestrator:
         agent_name: str,
         output: Dict[str, Any],
     ) -> None:
-        """Store agent output in shared context"""
+        """
+        Store agent output in shared context.
+        
+        FIXED: Added storage for all 7 agent types.
+        """
         if agent_name == constants.AGENT_DATA:
             self.context.data_findings = output
         
@@ -345,6 +541,26 @@ class MultiAgentOrchestrator:
         
         elif agent_name == constants.AGENT_UIUX:
             self.context.design_specs = output
+        
+        # FIXED: Added storage for Validation Agent output
+        elif agent_name == constants.AGENT_VALIDATION:
+            if not hasattr(self.context, 'validation_results'):
+                self.context.validation_results = []
+            self.context.validation_results.append(output)
+        
+        # FIXED: Added storage for Competitor Agent output
+        elif agent_name == constants.AGENT_COMPETITOR:
+            self.context.competitor_analysis = output
+        
+        # FIXED: Added storage for Interview Agent output
+        elif agent_name == constants.AGENT_INTERVIEW:
+            if not hasattr(self.context, 'interview_insights'):
+                self.context.interview_insights = []
+            self.context.interview_insights.append(output)
+        
+        # FIXED: Added storage for Feedback Agent output
+        elif agent_name == constants.AGENT_FEEDBACK:
+            self.context.feedback_analysis = output
     
     def _should_run_agent(
         self,
@@ -369,32 +585,64 @@ class MultiAgentOrchestrator:
         return ExecutionStrategy.SEQUENTIAL
     
     def _build_sequence(self) -> List[str]:
-        """Build agent execution sequence"""
-        required_agents = self.parsed_goal.required_agents
+        """
+        Build agent execution sequence.
         
-        # Define standard sequences
-        STANDARD_SEQUENCES = {
-            "research_to_design": [
-                constants.AGENT_DATA,
-                constants.AGENT_PRD,
-                constants.AGENT_UIUX,
-            ],
-            "data_only": [
-                constants.AGENT_DATA,
-            ],
-            "design_only": [
-                constants.AGENT_UIUX,
-            ],
-        }
+        FIXED: Now properly handles ALL required agents instead of
+        reducing to data_agent only. Uses preferred ordering to ensure
+        data flows correctly between agents.
+        """
+        raw_agents = self.parsed_goal.required_agents
         
-        # Determine which sequence to use
-        if len(required_agents) == 3:
-            return STANDARD_SEQUENCES["research_to_design"]
-        elif constants.AGENT_DATA in required_agents:
-            return [constants.AGENT_DATA]
-        else:
-            # Use provided order
-            return required_agents
+        # Robustly map LLM hallucinations to actual agents
+        mapped_agents = []
+        for a in raw_agents:
+            a_lower = a.lower()
+            if any(x in a_lower for x in ["data", "gather"]):
+                mapped_agents.append(constants.AGENT_DATA)
+            elif any(x in a_lower for x in ["competitor", "market"]):
+                mapped_agents.append(constants.AGENT_COMPETITOR)
+            elif any(x in a_lower for x in ["interview", "user"]):
+                mapped_agents.append(constants.AGENT_INTERVIEW)
+            elif any(x in a_lower for x in ["feedback", "sentiment"]):
+                mapped_agents.append(constants.AGENT_FEEDBACK)
+            elif any(x in a_lower for x in ["prd", "product", "manager"]):
+                mapped_agents.append(constants.AGENT_PRD)
+            elif any(x in a_lower for x in ["validate", "validation", "test"]):
+                mapped_agents.append(constants.AGENT_VALIDATION)
+            elif any(x in a_lower for x in ["ui", "ux", "design"]):
+                mapped_agents.append(constants.AGENT_UIUX)
+                
+        # Remove duplicates while preserving order
+        mapped_agents = list(dict.fromkeys(mapped_agents))
+        if not mapped_agents:
+            mapped_agents = [constants.AGENT_DATA]
+            
+        required_agents = mapped_agents
+        
+        # Define preferred execution order:
+        # Data collection first, then research/analysis, then synthesis, then design
+        AGENT_ORDER = [
+            constants.AGENT_DATA,
+            constants.AGENT_COMPETITOR,
+            constants.AGENT_INTERVIEW,
+            constants.AGENT_FEEDBACK,
+            constants.AGENT_PRD,
+            constants.AGENT_VALIDATION,
+            constants.AGENT_UIUX,
+        ]
+        
+        # Sort required_agents by preferred order, preserving ALL agents
+        ordered = [a for a in AGENT_ORDER if a in required_agents]
+        
+        # Add any agents not in the predefined order (future-proof)
+        for a in required_agents:
+            if a not in ordered:
+                ordered.append(a)
+        
+        print(f"✅ Orchestrator: Built sequence with {len(ordered)} agents: {ordered}")
+        
+        return ordered if ordered else [constants.AGENT_DATA]
     
     # =====================
     # Handoffs
@@ -436,6 +684,127 @@ class MultiAgentOrchestrator:
             key_fields=spec["key_fields"],
             action_required=spec["action"],
         )
+    
+    # =====================
+    # Checkpoints
+    # =====================
+    
+    async def _create_checkpoint(
+        self,
+        agent_name: str,
+        checkpoint_type: str = "agent_complete",
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> Checkpoint:
+        """Create a checkpoint for tracking progress"""
+        checkpoint = Checkpoint(
+            goal_id=self.goal.id,
+            agent_name=agent_name,
+            checkpoint_type=checkpoint_type,
+            title=title or f"{agent_name} completed",
+            description=description or f"Agent {agent_name} finished execution",
+            status="completed",
+        )
+        self.session.add(checkpoint)
+        await self.session.commit()
+        
+        # Send WebSocket update
+        await self._send_websocket_update({
+            "type": "checkpoint_created",
+            "checkpoint": {
+                "id": checkpoint.id,
+                "type": checkpoint.checkpoint_type,
+                "title": checkpoint.title,
+                "status": checkpoint.status,
+                "created_at": checkpoint.created_at.isoformat(),
+            },
+        })
+        
+        return checkpoint
+    
+    # =====================
+    # WebSocket Notifications
+    # =====================
+    
+    async def _send_websocket_update(self, message: Dict[str, Any]) -> None:
+        """
+        Send real-time update via WebSocket.
+        
+        FIXED: Added better error handling and logging.
+        """
+        try:
+            ws_manager = get_manager()
+            if ws_manager:
+                await ws_manager.send_update(self.goal.id, message)
+                print(f"📡 WebSocket sent: {message.get('type', 'unknown')}")
+            else:
+                print("⚠️ WebSocket manager not available")
+        except Exception as e:
+            # Don't fail execution if WebSocket fails, but log the error
+            print(f"⚠️ WebSocket send failed: {e}")
+    
+    async def _notify_agent_started(self, agent_name: str, agent_index: int = 1, total_agents: int = 1) -> None:
+        """
+        Notify that an agent started.
+        
+        FIXED: Added agent_index and total_agents for better UI progress tracking.
+        """
+        await self._send_websocket_update({
+            "type": "agent_started",
+            "goal_id": str(self.goal.id),
+            "agent": agent_name,
+            "agent_index": agent_index,
+            "total_agents": total_agents,
+            "timestamp": datetime.utcnow().isoformat(),
+        })
+    
+    async def _notify_agent_completed(
+        self, 
+        agent_name: str, 
+        success: bool, 
+        output: Optional[Dict] = None,
+        agent_index: int = 1,
+        total_agents: int = 1,
+        duration_seconds: float = 0.0
+    ) -> None:
+        """
+        Notify that an agent completed.
+        
+        FIXED: Added agent_index, total_agents, and duration for better tracking.
+        """
+        await self._send_websocket_update({
+            "type": "agent_completed",
+            "goal_id": str(self.goal.id),
+            "agent": agent_name,
+            "agent_index": agent_index,
+            "total_agents": total_agents,
+            "success": success,
+            "duration_seconds": duration_seconds,
+            "output_preview": output.get("summary", "") if output else None,
+            "timestamp": datetime.utcnow().isoformat(),
+        })
+    
+    async def _notify_progress(
+        self, 
+        progress_percent: float, 
+        current_agent: str,
+        agent_index: int = 1,
+        total_agents: int = 1
+    ) -> None:
+        """
+        Notify progress update.
+        
+        FIXED: Added agent_index and total_agents for percentage calculation.
+        """
+        await self._send_websocket_update({
+            "type": "progress_update",
+            "goal_id": str(self.goal.id),
+            "progress_percent": round(progress_percent, 1),
+            "current_agent": current_agent,
+            "agent_index": agent_index,
+            "total_agents": total_agents,
+            "timestamp": datetime.utcnow().isoformat(),
+        })
 
 
 # =====================

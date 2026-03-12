@@ -193,12 +193,15 @@ Base on best practices for the product type.
 """
         
         try:
-            return await ai_manager.generate_json(
+            res = await ai_manager.generate_json(
                 prompt=prompt,
                 system="You are a design system expert. Create consistent, accessible systems.",
             )
-        except:
-            return self._get_default_design_system()
+            if isinstance(res, dict):
+                return res
+        except Exception:
+            pass
+        return self._get_default_design_system()
     
     def _get_default_design_system(self) -> Dict[str, Any]:
         """Fallback design system"""
@@ -273,17 +276,22 @@ Include 3-5 main flows with complete paths.
 """
         
         try:
-            return await ai_manager.generate_json(prompt=prompt)
-        except:
-            return [{
-                "flow_id": "main-flow",
-                "name": "Main User Flow",
-                "steps": [
-                    {"step_id": "start", "screen": "Landing", "next_steps": ["action"]},
-                    {"step_id": "action", "screen": "Main Action", "next_steps": ["complete"]},
-                    {"step_id": "complete", "screen": "Success", "next_steps": []}
-                ]
-            }]
+            res = await ai_manager.generate_json(prompt=prompt)
+            if isinstance(res, list):
+                return [r for r in res if isinstance(r, dict)]
+            elif isinstance(res, dict):
+                return [res]
+        except Exception:
+            pass
+        return [{
+            "flow_id": "main-flow",
+            "name": "Main User Flow",
+            "steps": [
+                {"step_id": "start", "screen": "Landing", "next_steps": ["action"]},
+                {"step_id": "action", "screen": "Main Action", "next_steps": ["complete"]},
+                {"step_id": "complete", "screen": "Success", "next_steps": []}
+            ]
+        }]
     
     # =====================
     # Screen Design
@@ -356,14 +364,19 @@ Design 5-8 screens covering main flows.
 """
         
         try:
-            return await ai_manager.generate_json(prompt=prompt)
-        except:
-            return [{
-                "screen_id": "SCR-001",
-                "name": "Main Screen",
-                "layout": {"type": "single-column"},
-                "components": []
-            }]
+            res = await ai_manager.generate_json(prompt=prompt)
+            if isinstance(res, list):
+                return [r for r in res if isinstance(r, dict)]
+            elif isinstance(res, dict):
+                return [res]
+        except Exception:
+            pass
+        return [{
+            "screen_id": "SCR-001",
+            "name": "Main Screen",
+            "layout": {"type": "single-column"},
+            "components": []
+        }]
     
     # =====================
     # Component Library
@@ -420,13 +433,18 @@ Include 10-15 core components (Button, Input, Card, Modal, etc.)
 """
         
         try:
-            return await ai_manager.generate_json(prompt=prompt)
-        except:
-            return [{
-                "component_id": "button",
-                "name": "Button",
-                "props": [{"name": "label", "type": "string"}]
-            }]
+            res = await ai_manager.generate_json(prompt=prompt)
+            if isinstance(res, list):
+                return [r for r in res if isinstance(r, dict)]
+            elif isinstance(res, dict):
+                return [res]
+        except Exception:
+            pass
+        return [{
+            "component_id": "button",
+            "name": "Button",
+            "props": [{"name": "label", "type": "string"}]
+        }]
     
     # =====================
     # Accessibility
@@ -488,14 +506,17 @@ Be thorough - check all 50 Level A/AA criteria.
 """
         
         try:
-            return await ai_manager.generate_json(prompt=prompt)
-        except:
-            return {
-                "wcag_level": "AA",
-                "compliance_score": 0.90,
-                "criteria_checklist": [],
-                "issues_found": []
-            }
+            res = await ai_manager.generate_json(prompt=prompt)
+            if isinstance(res, dict):
+                return res
+        except Exception:
+            pass
+        return {
+            "wcag_level": "AA",
+            "compliance_score": 0.90,
+            "criteria_checklist": [],
+            "issues_found": []
+        }
     
     # =====================
     # Wireframe Generation

@@ -1,16 +1,29 @@
 'use client'
 
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { useGoal } from '@/hooks/useGoals'
 import { GoalSocket, GoalSocketMessage } from '@/lib/websocket'
+import { useAuth } from '@/hooks/useAuth'
 
 export default function GoalDetailPage() {
+  const router = useRouter()
   const params = useParams<{ id: string }>()
   const goalId = params.id
+  const { user, init, initialized, backendOnline, error: authError } = useAuth()
   const goalQuery = useGoal(goalId)
   const [events, setEvents] = useState<GoalSocketMessage[]>([])
+
+  useEffect(() => {
+    void init()
+  }, [init])
+
+  useEffect(() => {
+    if (initialized && !user) {
+      router.push('/login')
+    }
+  }, [initialized, user, router])
 
   const socket = useMemo(() => {
     if (!goalId) return null
@@ -24,6 +37,10 @@ export default function GoalDetailPage() {
     return () => socket?.disconnect()
   }, [socket])
 
+  if (!initialized || !user) {
+    return <main className="min-h-screen bg-slate-950 p-8 text-slate-100">Loading...</main>
+  }
+
   if (goalQuery.isLoading) {
     return <main className="min-h-screen bg-slate-950 p-8 text-slate-100">Loading goal...</main>
   }
@@ -31,7 +48,15 @@ export default function GoalDetailPage() {
   if (goalQuery.isError || !goalQuery.data) {
     return (
       <main className="min-h-screen bg-slate-950 p-8 text-slate-100">
-        <p className="text-rose-300">Failed to load goal details.</p>
+        {!backendOnline && (
+          <div className="mb-4 rounded-lg border border-rose-500/50 bg-rose-500/10 p-4">
+            <p className="text-rose-400">
+              <span className="font-semibold">Backend Offline:</span> Cannot load goal details.
+              Please start the backend server on port 8000.
+            </p>
+          </div>
+        )}
+        <p className="text-rose-300">{authError || 'Failed to load goal details.'}</p>
         <Link href="/dashboard" className="mt-4 inline-block text-cyan-300 underline">
           Back to dashboard
         </Link>

@@ -1,0 +1,222 @@
+{
+  "traces": [
+    {
+      "timestamp": "2026-03-02T12:01:54.820491+00:00",
+      "layer": "backend",
+      "component": "orchestrator",
+      "function": "_determine_strategy",
+      "line_number": 414,
+      "event_type": "executed",
+      "data": {
+        "strategy": "sequential"
+      }
+    },
+    {
+      "timestamp": "2026-03-02T12:01:54.820513+00:00",
+      "layer": "backend",
+      "component": "orchestrator",
+      "function": "_build_sequence",
+      "line_number": 422,
+      "event_type": "executed",
+      "data": {
+        "sequence": [
+          "data_agent"
+        ]
+      }
+    }
+  ],
+  "transitions": [
+    {
+      "timestamp": "2026-03-02T12:01:55.732553+00:00",
+      "entity_type": "ResearchGoal",
+      "entity_id": null,
+      "field": "status",
+      "old_value": null,
+      "new_value": "pending",
+      "triggered_by": "test_step_0"
+    },
+    {
+      "timestamp": "2026-03-02T12:01:55.732572+00:00",
+      "entity_type": "ResearchGoal",
+      "entity_id": null,
+      "field": "status",
+      "old_value": "pending",
+      "new_value": "running",
+      "triggered_by": "test_step_1"
+    },
+    {
+      "timestamp": "2026-03-02T12:01:55.732579+00:00",
+      "entity_type": "ResearchGoal",
+      "entity_id": null,
+      "field": "status",
+      "old_value": "running",
+      "new_value": "checkpoint",
+      "triggered_by": "test_step_2"
+    },
+    {
+      "timestamp": "2026-03-02T12:01:55.732583+00:00",
+      "entity_type": "ResearchGoal",
+      "entity_id": null,
+      "field": "status",
+      "old_value": "checkpoint",
+      "new_value": "running",
+      "triggered_by": "test_step_3"
+    },
+    {
+      "timestamp": "2026-03-02T12:01:55.732586+00:00",
+      "entity_type": "ResearchGoal",
+      "entity_id": null,
+      "field": "status",
+      "old_value": "running",
+      "new_value": "completed",
+      "triggered_by": "test_step_4"
+    },
+    {
+      "timestamp": "2026-03-02T12:01:55.732623+00:00",
+      "entity_type": "AgentState",
+      "entity_id": null,
+      "field": "status",
+      "old_value": "pending",
+      "new_value": "pending",
+      "triggered_by": "agent_execution"
+    },
+    {
+      "timestamp": "2026-03-02T12:01:55.732628+00:00",
+      "entity_type": "AgentState",
+      "entity_id": null,
+      "field": "status",
+      "old_value": "pending",
+      "new_value": "running",
+      "triggered_by": "agent_execution"
+    },
+    {
+      "timestamp": "2026-03-02T12:01:55.732631+00:00",
+      "entity_type": "AgentState",
+      "entity_id": null,
+      "field": "status",
+      "old_value": "running",
+      "new_value": "completed",
+      "triggered_by": "agent_execution"
+    }
+  ],
+  "ws_events": [
+    {
+      "timestamp": "2026-03-02T12:01:55.715711+00:00",
+      "direction": "OUT",
+      "goal_id": "test-goal",
+      "message_type": "test",
+      "payload": {
+        "type": "test",
+        "data": "value"
+      }
+    }
+  ],
+  "failures": [
+    {
+      "timestamp": "2026-03-02T12:01:54.820876+00:00",
+      "component": "orchestrator",
+      "function": "_send_websocket_update",
+      "line_number": 531,
+      "exception_type": "SilentException",
+      "exception_message": "Silent exception handler pattern detected",
+      "was_logged": false
+    }
+  ],
+  "goal_results": [
+    {
+      "test_name": "Simple Data Analysis",
+      "input": "Analyze our website traffic data to understand user behavior patterns",
+      "expected_agents": [
+        "data_agent"
+      ],
+      "actual_agents": [
+        "data_agent"
+      ],
+      "goal_type": "general",
+      "duration_ms": 0.01239776611328125,
+      "autonomy_level": "supervised",
+      "estimated_cost": 1000,
+      "estimated_days": 7
+    },
+    {
+      "test_name": "Product Strategy with PRD",
+      "input": "Create a product strategy for a new mobile banking app including user research a",
+      "expected_agents": [
+        "data_agent",
+        "prd_agent"
+      ],
+      "actual_agents": [
+        "data_agent"
+      ],
+      "goal_type": "general",
+      "duration_ms": 0.00858306884765625,
+      "autonomy_level": "supervised",
+      "estimated_cost": 1000,
+      "estimated_days": 7
+    },
+    {
+      "test_name": "Full Design Sprint",
+      "input": "I need a complete UX research and design package for our onboarding flow - inclu",
+      "expected_agents": [
+        "data_agent",
+        "prd_agent",
+        "ui_ux_agent"
+      ],
+      "actual_agents": [
+        "data_agent"
+      ],
+      "goal_type": "general",
+      "duration_ms": 0.0045299530029296875,
+      "autonomy_level": "supervised",
+      "estimated_cost": 1000,
+      "estimated_days": 7
+    },
+    {
+      "test_name": "Competitive Research",
+      "input": "Research our top 3 competitors in the fintech space and create a competitive ana",
+      "expected_agents": [
+        "data_agent",
+        "competitor_agent"
+      ],
+      "actual_agents": [
+        "data_agent"
+      ],
+      "goal_type": "general",
+      "duration_ms": 0.004291534423828125,
+      "autonomy_level": "supervised",
+      "estimated_cost": 1000,
+      "estimated_days": 7
+    },
+    {
+      "test_name": "User Interview Synthesis",
+      "input": "We conducted 20 user interviews. Analyze transcripts, extract insights, and crea",
+      "expected_agents": [
+        "data_agent",
+        "interview_agent"
+      ],
+      "actual_agents": [
+        "data_agent"
+      ],
+      "goal_type": "general",
+      "duration_ms": 0.0021457672119140625,
+      "autonomy_level": "supervised",
+      "estimated_cost": 1000,
+      "estimated_days": 7
+    }
+  ],
+  "race_conditions": [
+    {
+      "type": "silent_failure",
+      "location": "ConnectionManager.send_update",
+      "description": "Exceptions silently caught with bare except clause"
+    },
+    {
+      "type": "timing",
+      "goal_id": "race-test-001",
+      "description": "WebSocket sent before database commit",
+      "ws_time": "2026-03-02T12:01:55.732643+00:00",
+      "commit_time": "2026-03-02T12:01:55.782643+00:00",
+      "delta_ms": 50.0
+    }
+  ]
+}

@@ -15,50 +15,45 @@ from collections import Counter
 class FeedbackAgent(BaseAgent):
     """
     Feedback Analysis Agent - Customer voice specialist.
-    
-    Capabilities:
-    - Analyze support tickets
-    - Process survey responses
-    - Mine app store reviews
-    - Extract feature requests
-    - Sentiment analysis
-    - Priority scoring
     """
-    
+
     agent_name = "feedback_agent"
     agent_description = "Analyzes customer feedback to extract insights"
     required_tools = ["sentiment_analyzer", "text_classifier"]
-    
+
+    def __init__(self, session, goal):
+        super().__init__(session, goal)
+
     async def execute(self) -> Dict[str, Any]:
         """Main feedback analysis workflow."""
-        
+
         await self.update_progress("Collecting feedback", 15)
-        
+
         # Step 1: Collect feedback from sources
         feedback_data = await self._collect_feedback()
-        
+
         await self.update_progress("Analyzing sentiment", 35)
-        
+
         # Step 2: Sentiment analysis
         sentiment = await self._analyze_sentiment(feedback_data)
-        
+
         await self.update_progress("Extracting themes", 55)
-        
+
         # Step 3: Extract themes
         themes = await self._extract_themes(feedback_data)
-        
+
         await self.update_progress("Identifying feature requests", 75)
-        
+
         # Step 4: Extract feature requests
         features = await self._extract_feature_requests(feedback_data)
-        
+
         await self.update_progress("Prioritizing", 90)
-        
+
         # Step 5: Prioritize recommendations
         priorities = await self._prioritize_actions(themes, features, sentiment)
-        
+
         await self.update_progress("Complete", 100)
-        
+
         return {
             "agent": self.agent_name,
             "feedback_analyzed": len(feedback_data),
@@ -67,10 +62,10 @@ class FeedbackAgent(BaseAgent):
             "feature_requests": features,
             "priorities": priorities,
         }
-    
+
     async def _collect_feedback(self) -> List[Dict[str, Any]]:
         """Collect feedback from various sources."""
-        
+
         if self.goal.mode == "demo":
             # Simulated feedback data
             return [
@@ -138,7 +133,7 @@ class FeedbackAgent(BaseAgent):
         else:
             # Would collect from real sources
             feedback = []
-            
+
             # Zendesk tickets
             tickets = await self.use_tool("zendesk_api", {
                 "action": "search",
@@ -146,25 +141,25 @@ class FeedbackAgent(BaseAgent):
                 "limit": 100
             })
             feedback.extend(tickets)
-            
+
             # App reviews
             reviews = await self.use_tool("app_store_scraper", {
                 "app_id": self.goal.app_id,
                 "limit": 100
             })
             feedback.extend(reviews)
-            
+
             return feedback
-    
+
     async def _analyze_sentiment(self, feedback: List[Dict]) -> Dict[str, Any]:
         """Analyze sentiment of feedback."""
-        
+
         sentiments = {"positive": 0, "neutral": 0, "negative": 0}
-        
+
         for item in feedback:
             rating = item.get("rating", 3)
             text = item.get("text", "").lower()
-            
+
             # Simple sentiment analysis based on rating and keywords
             if rating >= 4:
                 sentiments["positive"] += 1
@@ -172,19 +167,19 @@ class FeedbackAgent(BaseAgent):
                 sentiments["neutral"] += 1
             else:
                 sentiments["negative"] += 1
-            
+
             # Adjust based on keywords
             negative_words = ["frustrating", "broken", "can't", "won't", "bad", "terrible"]
             positive_words = ["great", "love", "awesome", "perfect", "excellent"]
-            
+
             neg_count = sum(1 for word in negative_words if word in text)
             pos_count = sum(1 for word in positive_words if word in text)
-            
+
             if neg_count > pos_count and sentiments["negative"] > 0:
                 sentiments["negative"] = min(sentiments["negative"] + 1, len(feedback))
-        
+
         total = len(feedback)
-        
+
         return {
             "positive": {
                 "count": sentiments["positive"],
@@ -200,15 +195,15 @@ class FeedbackAgent(BaseAgent):
             },
             "average_rating": round(sum(item.get("rating", 3) for item in feedback) / total, 2)
         }
-    
+
     async def _extract_themes(self, feedback: List[Dict]) -> List[Dict[str, Any]]:
         """Extract common themes from feedback."""
-        
+
         ai_manager = get_ai_manager()
-        
+
         # Combine all feedback text
         all_text = [item.get("text", "") for item in feedback]
-        
+
         prompt = f"""
 Analyze this customer feedback and extract the top 5 themes:
 
@@ -228,7 +223,7 @@ Generate JSON:
     ]
 }}
 """
-        
+
         try:
             result = await ai_manager.generate_json(prompt=prompt)
             return result.get("themes", [])
@@ -241,10 +236,10 @@ Generate JSON:
                 "Guest checkout": [],
                 "Mobile experience": []
             }
-            
+
             for item in feedback:
                 text = item.get("text", "").lower()
-                
+
                 if "shipping" in text or "unexpected" in text:
                     themes["Unexpected shipping costs"].append(item["text"])
                 if "steps" in text or "pages" in text:
@@ -255,7 +250,7 @@ Generate JSON:
                     themes["Guest checkout"].append(item["text"])
                 if "mobile" in text:
                     themes["Mobile experience"].append(item["text"])
-            
+
             return [
                 {
                     "theme": theme,
@@ -269,13 +264,13 @@ Generate JSON:
                     reverse=True
                 )[:5]
             ]
-    
+
     async def _extract_feature_requests(
         self,
         feedback: List[Dict]
     ) -> List[Dict[str, Any]]:
         """Extract feature requests from feedback."""
-        
+
         feature_keywords = {
             "Apple Pay": ["apple pay", "apple wallet"],
             "Google Pay": ["google pay", "gpay"],
@@ -284,29 +279,29 @@ Generate JSON:
             "Autofill": ["autofill", "auto fill", "autocomplete"],
             "One-click": ["one click", "single click", "quick buy"]
         }
-        
+
         feature_counts = {}
         feature_quotes = {}
-        
+
         for item in feedback:
             text = item.get("text", "").lower()
-            
+
             for feature, keywords in feature_keywords.items():
                 for keyword in keywords:
                     if keyword in text:
                         feature_counts[feature] = feature_counts.get(feature, 0) + 1
-                        
+
                         if feature not in feature_quotes:
                             feature_quotes[feature] = []
                         feature_quotes[feature].append(item["text"])
-        
+
         # Sort by popularity
         sorted_features = sorted(
             feature_counts.items(),
             key=lambda x: x[1],
             reverse=True
         )
-        
+
         return [
             {
                 "feature": feature,
@@ -316,7 +311,7 @@ Generate JSON:
             }
             for feature, count in sorted_features[:10]
         ]
-    
+
     async def _prioritize_actions(
         self,
         themes: List[Dict],
@@ -324,9 +319,9 @@ Generate JSON:
         sentiment: Dict
     ) -> List[Dict[str, Any]]:
         """Prioritize actions based on analysis."""
-        
+
         ai_manager = get_ai_manager()
-        
+
         prompt = f"""
 Based on this feedback analysis, recommend priority actions:
 
@@ -353,7 +348,7 @@ Generate prioritized recommendations in JSON:
     ]
 }}
 """
-        
+
         try:
             result = await ai_manager.generate_json(prompt=prompt)
             return result.get("recommendations", [])

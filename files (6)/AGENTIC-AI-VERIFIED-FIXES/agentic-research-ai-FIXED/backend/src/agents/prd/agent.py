@@ -133,12 +133,15 @@ Be specific with numbers and evidence.
 """
         
         try:
-            return await ai_manager.generate_json(
+            res = await ai_manager.generate_json(
                 prompt=prompt,
                 system="You are a strategic product thinker who transforms data into decisions.",
             )
-        except:
-            return {
+            if isinstance(res, dict):
+                return res
+        except Exception:
+            pass
+        return {
                 "problem_statement": self.goal.description,
                 "root_causes": [],
                 "user_pain_points": [],
@@ -177,14 +180,19 @@ Make them realistic and specific.
 """
         
         try:
-            return await ai_manager.generate_json(prompt=prompt)
-        except:
-            return [{
-                "name": "Primary User",
-                "role": "Product Manager",
-                "goals": ["Complete research quickly"],
-                "pain_points": ["Time-consuming research"],
-            }]
+            res = await ai_manager.generate_json(prompt=prompt)
+            if isinstance(res, list):
+                return [r for r in res if isinstance(r, dict)]
+            elif isinstance(res, dict):
+                return [res]
+        except Exception:
+            pass
+        return [{
+            "name": "Primary User",
+            "role": "Product Manager",
+            "goals": ["Complete research quickly"],
+            "pain_points": ["Time-consuming research"],
+        }]
     
     # =====================
     # User Stories
@@ -227,13 +235,18 @@ Write from user perspective, be specific about outcomes.
 """
         
         try:
-            return await ai_manager.generate_json(prompt=prompt)
-        except:
-            return [{
-                "id": "US-001",
-                "story": f"As a user, I want to {self.goal.description}",
-                "priority": "must-have",
-            }]
+            res = await ai_manager.generate_json(prompt=prompt)
+            if isinstance(res, list):
+                return [r for r in res if isinstance(r, dict)]
+            elif isinstance(res, dict):
+                return [res]
+        except Exception:
+            pass
+        return [{
+            "id": "US-001",
+            "story": f"As a user, I want to {self.goal.description}",
+            "priority": "must-have",
+        }]
     
     # =====================
     # Requirements
@@ -282,13 +295,16 @@ Be specific and measurable.
 """
         
         try:
-            return await ai_manager.generate_json(prompt=prompt)
-        except:
-            return {
-                "functional": [],
-                "non_functional": [],
-                "technical_constraints": [],
-            }
+            res = await ai_manager.generate_json(prompt=prompt)
+            if isinstance(res, dict):
+                return res
+        except Exception:
+            pass
+        return {
+            "functional": [],
+            "non_functional": [],
+            "technical_constraints": [],
+        }
     
     # =====================
     # Success Metrics
@@ -333,12 +349,15 @@ Make targets specific and measurable.
 """
         
         try:
-            return await ai_manager.generate_json(prompt=prompt)
-        except:
-            return {
-                "north_star": {"metric": "User satisfaction", "target": "Improve"},
-                "primary_metrics": [],
-            }
+            res = await ai_manager.generate_json(prompt=prompt)
+            if isinstance(res, dict):
+                return res
+        except Exception:
+            pass
+        return {
+            "north_star": {"metric": "User satisfaction", "target": "Improve"},
+            "primary_metrics": [],
+        }
     
     # =====================
     # Rollout Planning
@@ -385,16 +404,19 @@ Include 3-4 phases (alpha, beta, gradual rollout, full launch).
 """
         
         try:
-            return await ai_manager.generate_json(prompt=prompt)
-        except:
-            return {
-                "phases": [{
-                    "phase": 1,
-                    "name": "Beta Launch",
-                    "duration_days": 14,
-                    "audience": "10% of users",
-                }],
-            }
+            res = await ai_manager.generate_json(prompt=prompt)
+            if isinstance(res, dict):
+                return res
+        except Exception:
+            pass
+        return {
+            "phases": [{
+                "phase": 1,
+                "name": "Beta Launch",
+                "duration_days": 14,
+                "audience": "10% of users",
+            }],
+        }
     
     # =====================
     # PRD Document Generation

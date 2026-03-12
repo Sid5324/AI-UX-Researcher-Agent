@@ -16,9 +16,8 @@ from datetime import datetime
 from pathlib import Path
 
 try:
-    import chromadb
-    from chromadb.config import Settings as ChromaSettings
-    CHROMADB_AVAILABLE = True
+    # Explicitly disabled to avoid pydantic v1 config issues with modern python
+    CHROMADB_AVAILABLE = False
 except Exception as e:
     CHROMADB_AVAILABLE = False
     print(f"Warning: ChromaDB unavailable, running without semantic memory: {e}")
@@ -58,13 +57,8 @@ class MemoryManager:
             chroma_path = Path(settings.chromadb_path)
             chroma_path.mkdir(parents=True, exist_ok=True)
             
-            # Initialize client (persistent storage)
-            self.chromadb_client = chromadb.Client(
-                ChromaSettings(
-                    chroma_db_impl="duckdb+parquet",
-                    persist_directory=str(chroma_path),
-                )
-            )
+            # Initialize client (modern persistent storage v0.4+)
+            self.chromadb_client = chromadb.PersistentClient(path=str(chroma_path))
             
             # Get or create collections
             self.insights_collection = self.chromadb_client.get_or_create_collection(
@@ -118,10 +112,8 @@ class MemoryManager:
             content=content,
             confidence=confidence,
             evidence=evidence,
-            validation_method=evidence.get("method", "unknown"),
             tags=tags,
             effect_size=effect_size,
-            applicable_contexts=tags,  # Same as tags initially
         )
         
         session.add(insight)

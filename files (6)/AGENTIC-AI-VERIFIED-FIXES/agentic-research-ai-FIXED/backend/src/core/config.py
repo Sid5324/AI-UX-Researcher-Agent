@@ -120,7 +120,7 @@ class Settings(BaseSettings):
         description="Ollama server base URL"
     )
     ollama_model: str = Field(
-        default="llama3.2:3b",
+        default="qwen3.5:9b",
         description="Primary Ollama model"
     )
     ollama_fallback_models: str = Field(
@@ -135,6 +135,10 @@ class Settings(BaseSettings):
     openrouter_api_key: Optional[str] = Field(
         default=None,
         description="OpenRouter API key for cloud models"
+    )
+    groq_api_key: Optional[str] = Field(
+        default=None,
+        description="Groq API key for fast inference"
     )
     openai_api_key: Optional[str] = Field(
         default=None,
@@ -382,10 +386,14 @@ settings = get_settings()
 class Constants:
     """Application constants"""
     
-    # Agent Names
+    # Agent Names - All 7 agents
     AGENT_DATA = "data_agent"
     AGENT_PRD = "prd_agent"
     AGENT_UIUX = "ui_ux_agent"
+    AGENT_VALIDATION = "validation_agent"
+    AGENT_COMPETITOR = "competitor_agent"
+    AGENT_INTERVIEW = "interview_agent"
+    AGENT_FEEDBACK = "feedback_agent"
     
     # Goal Status
     STATUS_PENDING = "pending"

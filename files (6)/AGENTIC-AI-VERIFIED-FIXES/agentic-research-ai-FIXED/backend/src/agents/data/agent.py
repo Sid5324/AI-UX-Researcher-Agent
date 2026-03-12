@@ -12,7 +12,7 @@ Capabilities:
 """
 
 import json
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime
 
 from src.agents.base import BaseAgent
@@ -60,7 +60,7 @@ class DataAgent(BaseAgent):
         await self.update_progress("Collecting data", 30)
         
         # Step 2: Collect data
-        if settings.is_demo_mode:
+        if self.goal.mode == "demo":
             data = await self._generate_demo_data(plan)
         else:
             data = await self._collect_real_data(plan)
@@ -320,7 +320,16 @@ Focus on actionable insights relevant to the goal.
         """Create text summary of findings"""
         findings = insights.get("key_findings", [])
         if findings:
-            return " | ".join(findings[:3])
+            # Handle both string and dict items in findings
+            summary_parts = []
+            for finding in findings[:3]:
+                if isinstance(finding, dict):
+                    # Extract meaningful text from dict (e.g., 'finding' or 'insight' key)
+                    text = finding.get("finding") or finding.get("insight") or finding.get("description") or str(finding)
+                    summary_parts.append(text)
+                else:
+                    summary_parts.append(str(finding))
+            return " | ".join(summary_parts)
         return "Data collection complete"
     
     def _suggest_next_steps(self, insights: Dict[str, Any]) -> List[str]:

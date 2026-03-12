@@ -444,11 +444,12 @@ Provide decision in JSON:
         
         checkpoint = Checkpoint(
             goal_id=self.goal.id,
+            agent_name=self.agent_name,
             checkpoint_type=constants.CHECKPOINT_CUSTOM,
             title=f"Checkpoint at iteration {self.iteration}",
             description=reason or self.checkpoint_reason or "Agent needs approval",
             agent_reasoning=self.agent_state.last_thought,
-            status="waiting",
+            status="pending",
         )
         
         self.session.add(checkpoint)

@@ -8,7 +8,7 @@ import { useCreateGoal, useGoals } from '@/hooks/useGoals'
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { user, init, initialized, logout } = useAuth()
+  const { user, init, initialized, logout, backendOnline, error: authError } = useAuth()
   const goalsQuery = useGoals()
   const createGoal = useCreateGoal()
   const [description, setDescription] = useState(
@@ -16,6 +16,8 @@ export default function DashboardPage() {
   )
   const [budget, setBudget] = useState('2000')
   const [timeline, setTimeline] = useState('7')
+  const [mode, setMode] = useState<'demo' | 'real'>('demo')
+  const [actionError, setActionError] = useState<string | null>(null)
 
   useEffect(() => {
     void init()
@@ -29,12 +31,24 @@ export default function DashboardPage() {
 
   const onCreateGoal = async (e: FormEvent) => {
     e.preventDefault()
-    const goal = await createGoal.mutateAsync({
-      description,
-      budget_usd: Number.isFinite(Number(budget)) ? Number(budget) : undefined,
-      timeline_days: Number.isFinite(Number(timeline)) ? Number(timeline) : undefined,
-    })
-    router.push(`/goals/${goal.id}`)
+    setActionError(null)
+
+    if (!backendOnline) {
+      setActionError('Cannot create goal: Backend server is offline')
+      return
+    }
+
+    try {
+      const goal = await createGoal.mutateAsync({
+        description,
+        budget_usd: Number.isFinite(Number(budget)) ? Number(budget) : undefined,
+        timeline_days: Number.isFinite(Number(timeline)) ? Number(timeline) : undefined,
+        mode,
+      })
+      router.push(`/goals/${goal.id}`)
+    } catch (error) {
+      setActionError('Failed to create goal. Please try again.')
+    }
   }
 
   if (!initialized || !user) {
@@ -65,6 +79,21 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {!backendOnline && (
+          <div className="mb-6 rounded-lg border border-rose-500/50 bg-rose-500/10 p-4">
+            <p className="text-rose-400">
+              <span className="font-semibold">Backend Offline:</span> Cannot create goals or load data.
+              Please start the backend server on port 8000.
+            </p>
+          </div>
+        )}
+
+        {(authError || actionError) && (
+          <div className="mb-6 rounded-lg border border-rose-500/50 bg-rose-500/10 p-4">
+            <p className="text-rose-400">{authError || actionError}</p>
+          </div>
+        )}
+
         <section className="mb-8 rounded-xl border border-slate-800 bg-slate-900/70 p-6">
           <h2 className="text-xl font-medium text-white">Start new autonomous research</h2>
           <form className="mt-4 grid gap-4" onSubmit={onCreateGoal}>
@@ -78,7 +107,7 @@ export default function DashboardPage() {
                 required
               />
             </label>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <label className="text-sm text-slate-300">
                 Budget (USD)
                 <input
@@ -99,13 +128,25 @@ export default function DashboardPage() {
                   min={1}
                 />
               </label>
+              <label className="text-sm text-slate-300">
+                Execution Mode
+                <select
+                  className="mt-2 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-white"
+                  value={mode}
+                  onChange={(e) => setMode(e.target.value as 'demo' | 'real')}
+                >
+                  <option value="demo">Demo (Synthetic Data)</option>
+                  <option value="real">Real (Live APIs)</option>
+                </select>
+              </label>
             </div>
             <button
               type="submit"
-              disabled={createGoal.isPending}
-              className="rounded-md bg-cyan-500 px-4 py-2 font-semibold text-slate-950 disabled:opacity-60"
+              disabled={createGoal.isPending || !backendOnline}
+              className="rounded-md bg-cyan-500 px-4 py-2 font-semibold text-slate-950 disabled:opacity-60 disabled:cursor-not-allowed"
+              title={!backendOnline ? 'Backend server is offline' : ''}
             >
-              {createGoal.isPending ? 'Starting agents...' : 'Create and run'}
+              {!backendOnline ? 'Backend Offline' : createGoal.isPending ? 'Starting agents...' : 'Create and run'}
             </button>
           </form>
         </section>

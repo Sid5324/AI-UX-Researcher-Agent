@@ -11,11 +11,15 @@ Provides:
 - State management
 """
 
+import logging
+import traceback
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 
 from src.core.config import constants
+
+logger = logging.getLogger(__name__)
 from src.database.models import ResearchGoal, AgentState
 from src.database.session import AsyncSession
 from src.tools.registry import get_tool_registry
@@ -127,6 +131,13 @@ class BaseAgent(ABC):
             self.agent_state.completed_at = datetime.utcnow()
             await self.session.commit()
             
+            # Log the error with full traceback
+            error_msg = f"Agent {self.agent_name} failed for goal {self.goal.id}: {str(e)}"
+            logger.error(error_msg)
+            logger.error(traceback.format_exc())
+            print(f"\n[ERROR] {error_msg}")
+            print(f"[ERROR] Traceback: {traceback.format_exc()}")
+            
             return {
                 "success": False,
                 "agent": self.agent_name,
@@ -189,6 +200,8 @@ class BaseAgent(ABC):
         content: str,
         insight_type: str,
         confidence: float,
+        evidence: Optional[Dict[str, Any]] = None,
+        tags: Optional[List[str]] = None,
         **kwargs,
     ) -> str:
         """
@@ -198,6 +211,8 @@ class BaseAgent(ABC):
             content: Insight content
             insight_type: Type of insight
             confidence: Confidence score (0-1)
+            evidence: Supporting evidence (optional)
+            tags: Category tags (optional)
             **kwargs: Additional metadata
             
         Returns:
@@ -208,6 +223,8 @@ class BaseAgent(ABC):
             content=content,
             insight_type=insight_type,
             confidence=confidence,
+            evidence=evidence or {"method": "agent_analysis", "agent": self.agent_name},
+            tags=tags or [self.agent_name, insight_type],
             **kwargs,
         )
     

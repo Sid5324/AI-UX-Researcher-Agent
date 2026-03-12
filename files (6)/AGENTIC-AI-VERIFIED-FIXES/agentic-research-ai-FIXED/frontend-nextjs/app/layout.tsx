@@ -3,6 +3,7 @@ import { Manrope } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/providers'
 import { Toaster } from '@/components/ui/toaster'
+import { ConnectionStatus } from '@/components/ui/ConnectionStatus'
 
 const manrope = Manrope({ subsets: ['latin'] })
 
@@ -23,6 +24,7 @@ export default function RootLayout({
         <Providers>
           {children}
           <Toaster />
+          <ConnectionStatus />
         </Providers>
       </body>
     </html>
